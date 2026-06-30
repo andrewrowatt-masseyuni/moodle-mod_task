@@ -377,6 +377,7 @@ class manager {
         return [
             'id' => (int)$post->id,
             'parentid' => (int)$post->parentid,
+            'ismine' => $isown,
             'content' => $post->deleted ? '' : format_text(
                 $post->content,
                 FORMAT_HTML,
@@ -809,18 +810,28 @@ class manager {
     /**
      * Whether a user holding a preference should be notified of a given post.
      *
+     * A teacher's reply within the user's own response thread always notifies
+     * them, whatever their preference (even when muted): a student should never
+     * miss teacher feedback on their own response.
+     *
      * @param int $preference the recipient's NOTIFY_* preference
      * @param bool $isreply whether the post is a reply (true) or a top-level response (false)
      * @param int $rootauthorid the author of the top-level response in the reply's thread (0 for responses)
      * @param int $recipientid the candidate recipient's user id
+     * @param bool $isteacherreply whether this reply was authored by a teacher (staff)
      * @return bool
      */
     public static function should_notify_for_post(
         int $preference,
         bool $isreply,
         int $rootauthorid,
-        int $recipientid
+        int $recipientid,
+        bool $isteacherreply = false
     ): bool {
+        // A teacher replying to your own response always reaches you, muted or not.
+        if ($isreply && $isteacherreply && $rootauthorid === $recipientid) {
+            return true;
+        }
         if ($preference === self::NOTIFY_NONE) {
             return false;
         }

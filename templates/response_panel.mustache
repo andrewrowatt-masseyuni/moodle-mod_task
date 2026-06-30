@@ -1,0 +1,73 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_task/response_panel
+
+    A collapsible Bootstrap card wrapping one top-level response and its replies.
+    Used for both the dedicated "Your response" panel and each of the other
+    responses. The response tree (the post and its replies) is rendered into
+    [data-region="panel-body"] by mod_task/view.
+
+    The hide/show labels are swapped purely by the .collapsed class Bootstrap
+    toggles on the trigger (see styles.css), so the standard collapse data API
+    drives the whole panel.
+
+    Data attributes required for JS:
+    * data-region="response-panel"
+    * data-postid
+    * data-region="panel-body" (where the post tree is injected)
+
+    Context variables required for this template:
+    * uid (string) unique fragment for the collapse target/header ids
+    * postid (int) the top-level response id
+    * title (string) optional header text shown beside the toggle (e.g. author name)
+    * hidelabel (string) toggle text while expanded
+    * showlabel (string) toggle text while collapsed
+    * expanded (bool) whether the panel starts expanded
+    * own (bool) whether this is the current user's own response
+
+    Example context (json):
+    {
+        "uid": "7_42",
+        "postid": 42,
+        "title": "",
+        "hidelabel": "Hide your response",
+        "showlabel": "Show your response",
+        "expanded": true,
+        "own": true
+    }
+}}
+<div class="card mod-task-response-panel {{#own}}mod-task-response-panel-own{{/own}}"
+  data-region="response-panel" data-postid="{{postid}}">
+  <div class="card-header mod-task-response-panel-header d-flex justify-content-between align-items-center"
+    id="mod-task-rph-{{uid}}">
+    {{#title}}<span class="mod-task-response-panel-title">{{title}}</span>{{/title}}
+    {{^title}}<span></span>{{/title}}
+    <button class="btn btn-sm btn-link mod-task-response-toggle{{^expanded}} collapsed{{/expanded}}" type="button"
+      data-toggle="collapse" data-target="#mod-task-rpc-{{uid}}"
+      aria-expanded="{{#expanded}}true{{/expanded}}{{^expanded}}false{{/expanded}}"
+      aria-controls="mod-task-rpc-{{uid}}">
+      <i class="fa fa-chevron-up mod-task-toggle-icon" aria-hidden="true"></i>
+      <span class="mod-task-toggle-hide">{{hidelabel}}</span>
+      <span class="mod-task-toggle-show">{{showlabel}}</span>
+    </button>
+  </div>
+  <div id="mod-task-rpc-{{uid}}" class="collapse{{#expanded}} show{{/expanded}}"
+    aria-labelledby="mod-task-rph-{{uid}}">
+    <div class="card-body mod-task-response-panel-body" data-region="panel-body"></div>
+  </div>
+</div>

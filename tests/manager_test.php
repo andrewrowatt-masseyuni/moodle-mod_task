@@ -466,6 +466,14 @@ final class manager_test extends \advanced_testcase {
         $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_ALL, true, 99, 5));
         $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_MYREPLIES, true, 5, 5));
         $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_MYREPLIES, true, 99, 5));
+
+        // A teacher's reply to your own response reaches you whatever your setting,
+        // even when muted; a teacher's reply elsewhere, or a peer's reply, does not.
+        $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_NONE, true, 5, 5, true));
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_NONE, true, 99, 5, true));
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_NONE, true, 5, 5, false));
+        // The override never applies to a top-level response.
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_NONE, false, 0, 5, true));
     }
 
     public function test_thread_root_author_walks_to_top_level(): void {
@@ -573,6 +581,62 @@ final class manager_test extends \advanced_testcase {
 
         $this->assertArrayHasKey((int)$data['teacher']->id, $byuser);
         $this->assertStringContainsString(fullname($data['student1']), $byuser[(int)$data['teacher']->id]);
+    }
+
+    public function test_teacher_reply_reaches_muted_student(): void {
+        $data = $this->setup_course_task();
+
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        // Mute student1's notifications for this Task.
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_NONE);
+
+        $this->setUser($data['teacher']);
+        $sink = $this->redirectMessages();
+
+        // A teacher replies inside student1's own response thread.
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Teacher feedback.</p>',
+            false,
+            (int)$data['teacher']->id
+        );
+        $this->run_send_notification((int)$reply->id);
+
+        // The mute is overridden: the response owner still hears about it.
+        $this->assertContains((int)$data['student1']->id, $this->message_recipient_ids($sink));
+    }
+
+    public function test_peer_reply_does_not_override_mute(): void {
+        $data = $this->setup_course_task();
+
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_NONE);
+
+        $this->setUser($data['student2']);
+        $sink = $this->redirectMessages();
+
+        // A peer (not a teacher) replies in student1's thread.
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Peer reply.</p>',
+            false,
+            (int)$data['student2']->id
+        );
+        $this->run_send_notification((int)$reply->id);
+
+        // Only a teacher's reply overrides the mute; a peer's does not.
+        $this->assertNotContains((int)$data['student1']->id, $this->message_recipient_ids($sink));
     }
 
     /**

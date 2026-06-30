@@ -56,6 +56,7 @@ class helper {
         return new external_single_structure([
             'id' => new external_value(PARAM_INT, 'Post id'),
             'parentid' => new external_value(PARAM_INT, 'Parent post id (0 for a top-level response)'),
+            'ismine' => new external_value(PARAM_BOOL, 'Whether this post was authored by the current viewer'),
             'content' => new external_value(PARAM_RAW, 'Sanitised HTML content'),
             'deleted' => new external_value(PARAM_BOOL, 'Whether the post is deleted'),
             'edited' => new external_value(PARAM_BOOL, 'Whether the post has been edited'),

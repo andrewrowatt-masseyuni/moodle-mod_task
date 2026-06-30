@@ -75,6 +75,10 @@ class send_notification extends \core\task\adhoc_task {
             $staffids[(int)$staffuser->id] = true;
         }
 
+        // A reply from a teacher (staff) is the one notification a muted student
+        // still receives, but only on their own response thread.
+        $isteacherreply = $isreply && isset($staffids[(int)$post->userid]);
+
         $taskname = format_string($task->name, true, ['context' => $context]);
         $url = new \moodle_url('/mod/task/view.php', ['id' => $cm->id]);
         $subject = get_string('newresponsesubject', 'mod_task', $taskname);
@@ -90,7 +94,7 @@ class send_notification extends \core\task\adhoc_task {
 
             $isstaff = isset($staffids[$recipientid]);
             $preference = manager::effective_notification_preference((int)$task->id, $recipientid, $isstaff);
-            if (!manager::should_notify_for_post($preference, $isreply, $rootauthorid, $recipientid)) {
+            if (!manager::should_notify_for_post($preference, $isreply, $rootauthorid, $recipientid, $isteacherreply)) {
                 continue;
             }
 

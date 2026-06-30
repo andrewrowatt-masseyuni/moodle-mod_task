@@ -22,9 +22,8 @@ Feature: Task notification preferences
 
   Scenario: The notification settings panel offers the four preferences
     When I am on the "My Task" "task activity" page logged in as student1
-    Then I should see "Notification settings"
-    And I should see "Notification preferences"
-    And "Mute all notifications" "button" should exist
+    Then I should see "Notification preferences"
+    And "Mute notifications (except for Teacher replies)" "button" should exist
     And "All new responses and replies" "button" should exist
     And "All new replies to my response only" "button" should exist
 
@@ -38,5 +37,6 @@ Feature: Task notification preferences
 
   Scenario: Selecting a preference marks it as the active choice
     Given I am on the "My Task" "task activity" page logged in as student1
-    When I click on "Mute all notifications" "button"
-    Then "//*[@data-region='task-notify-settings']//button[@aria-pressed='true'][contains(., 'Mute all notifications')]" "xpath_element" should exist
+    When I click on "[data-region='task-notify-settings'] .dropdown-toggle" "css_element"
+    And I click on "Mute notifications (except for Teacher replies)" "button"
+    Then "//*[@data-region='task-notify-settings']//button[@aria-pressed='true'][contains(., 'Mute notifications (except for Teacher replies)')]" "xpath_element" should exist
