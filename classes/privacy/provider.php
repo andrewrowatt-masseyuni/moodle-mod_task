@@ -67,6 +67,12 @@ class provider implements
             'timeviewed' => 'privacy:metadata:task_lastviewed:timeviewed',
         ], 'privacy:metadata:task_lastviewed');
 
+        $collection->add_database_table('task_notifypref', [
+            'taskid' => 'privacy:metadata:task_notifypref:taskid',
+            'userid' => 'privacy:metadata:task_notifypref:userid',
+            'preference' => 'privacy:metadata:task_notifypref:preference',
+        ], 'privacy:metadata:task_notifypref');
+
         return $collection;
     }
 
@@ -86,14 +92,16 @@ class provider implements
                   JOIN {task} t ON t.id = cm.instance
              LEFT JOIN {task_post} p ON p.taskid = t.id AND p.userid = :puserid
              LEFT JOIN {task_lastviewed} lv ON lv.taskid = t.id AND lv.userid = :lvuserid
+             LEFT JOIN {task_notifypref} np ON np.taskid = t.id AND np.userid = :npuserid
              LEFT JOIN {task_post} rp ON rp.taskid = t.id
              LEFT JOIN {task_reaction} r ON r.postid = rp.id AND r.userid = :ruserid
-                 WHERE p.id IS NOT NULL OR lv.id IS NOT NULL OR r.id IS NOT NULL";
+                 WHERE p.id IS NOT NULL OR lv.id IS NOT NULL OR np.id IS NOT NULL OR r.id IS NOT NULL";
         $params = [
             'modlevel' => CONTEXT_MODULE,
             'modname' => 'task',
             'puserid' => $userid,
             'lvuserid' => $userid,
+            'npuserid' => $userid,
             'ruserid' => $userid,
         ];
         $contextlist->add_from_sql($sql, $params);
@@ -125,6 +133,13 @@ class provider implements
                   FROM {course_modules} cm
                   JOIN {modules} m ON m.id = cm.module AND m.name = :modname
                   JOIN {task_lastviewed} lv ON lv.taskid = cm.instance
+                 WHERE cm.id = :cmid";
+        $userlist->add_from_sql('userid', $sql, $params);
+
+        $sql = "SELECT np.userid
+                  FROM {course_modules} cm
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {task_notifypref} np ON np.taskid = cm.instance
                  WHERE cm.id = :cmid";
         $userlist->add_from_sql('userid', $sql, $params);
 
@@ -196,6 +211,14 @@ class provider implements
                     (object) ['timeviewed' => transform::datetime($lv->timeviewed)]
                 );
             }
+
+            // Notification preference.
+            if ($np = $DB->get_record('task_notifypref', ['taskid' => $cm->instance, 'userid' => $user->id])) {
+                writer::with_context($context)->export_data(
+                    ['notificationpreference'],
+                    (object) ['preference' => $np->preference]
+                );
+            }
         }
     }
 
@@ -222,6 +245,7 @@ class provider implements
         }
         $DB->delete_records('task_post', ['taskid' => $cm->instance]);
         $DB->delete_records('task_lastviewed', ['taskid' => $cm->instance]);
+        $DB->delete_records('task_notifypref', ['taskid' => $cm->instance]);
     }
 
     /**
@@ -309,6 +333,13 @@ class provider implements
         // Remove last-viewed rows.
         $DB->delete_records_select(
             'task_lastviewed',
+            "taskid = :taskid AND userid $userinsql",
+            ['taskid' => $taskid] + $userparams
+        );
+
+        // Remove notification preferences.
+        $DB->delete_records_select(
+            'task_notifypref',
             "taskid = :taskid AND userid $userinsql",
             ['taskid' => $taskid] + $userparams
         );

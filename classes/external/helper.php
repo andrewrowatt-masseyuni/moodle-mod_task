@@ -75,6 +75,24 @@ class helper {
     }
 
     /**
+     * Description of the notification preference panel data.
+     *
+     * @return external_single_structure
+     */
+    public static function notification_settings_structure(): external_single_structure {
+        return new external_single_structure([
+            'cmid' => new external_value(PARAM_INT, 'Task course module id'),
+            'options' => new external_multiple_structure(
+                new external_single_structure([
+                    'value' => new external_value(PARAM_INT, 'Preference value'),
+                    'label' => new external_value(PARAM_TEXT, 'Preference label'),
+                    'active' => new external_value(PARAM_BOOL, 'Whether this is the current preference'),
+                ])
+            ),
+        ]);
+    }
+
+    /**
      * Description of the gated Task view payload.
      *
      * @return external_single_structure
@@ -87,6 +105,8 @@ class helper {
             'taskdescription' => new external_value(PARAM_RAW, 'Formatted task description HTML'),
             'canrespond' => new external_value(PARAM_BOOL, 'Viewer can post a response/reply'),
             'canaddresponse' => new external_value(PARAM_BOOL, 'Viewer may still post a top-level response'),
+            'shownotificationsettings' => new external_value(PARAM_BOOL, 'Show the notification preference panel'),
+            'notificationsettings' => self::notification_settings_structure(),
             'canviewall' => new external_value(PARAM_BOOL, 'Viewer is staff (sees all without responding)'),
             'canmanage' => new external_value(PARAM_BOOL, 'Viewer can moderate posts'),
             'canreact' => new external_value(PARAM_BOOL, 'Viewer can react'),

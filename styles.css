@@ -274,3 +274,20 @@
     margin-bottom: 1rem;
     background: #f8f9fa;
 }
+
+/* Notification settings panel (sits above the task description). */
+.mod-task-notification-settings {
+    padding-bottom: 0.5rem;
+    
+    .mod-task-notification-row {
+        gap: 0.5rem 1rem;
+    }
+}
+
+.mod-task-composer {
+    outline: 1px solid yellowgreen;
+}
+
+.mod-task-posts {
+    outline: 1px solid orange;
+}

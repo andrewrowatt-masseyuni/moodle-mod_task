@@ -16,8 +16,14 @@
 
 namespace mod_task\task;
 
+use mod_task\manager;
+
 /**
- * Adhoc task: notify staff of a new student response or reply.
+ * Adhoc task: notify participants of a new response or reply.
+ *
+ * Each enrolled participant is notified (or not) according to their own
+ * per-user notification preference for the Task. The author's name is resolved
+ * per-recipient so an anonymous post never reveals its author to a peer.
  *
  * @package    mod_task
  * @copyright  2026 Andrew Rowatt <A.J.Rowatt@massey.ac.nz>
@@ -25,7 +31,7 @@ namespace mod_task\task;
  */
 class send_notification extends \core\task\adhoc_task {
     /**
-     * Send the notification to every staff member who has opted in.
+     * Send the notification to every participant whose preference matches.
      */
     public function execute() {
         global $DB;
@@ -38,7 +44,7 @@ class send_notification extends \core\task\adhoc_task {
             return;
         }
         $task = $DB->get_record('task', ['id' => $post->taskid]);
-        if (!$task || empty($task->notifyteacher)) {
+        if (!$task) {
             return;
         }
         $cm = get_coursemodule_from_instance('task', $task->id, 0, false, IGNORE_MISSING);
@@ -53,17 +59,44 @@ class send_notification extends \core\task\adhoc_task {
             return;
         }
 
+        $isreply = ((int)$post->parentid !== 0);
+        $isanonymous = (bool)$post->anonymous;
+        // For the "replies to my response only" preference we need to know whose
+        // response thread this reply belongs to.
+        $rootauthorid = $isreply ? manager::thread_root_author((int)$post->id) : 0;
+
+        // Candidate recipients are the enrolled participants. Staff (who see all
+        // responses) determine both the default preference and whether a
+        // recipient may see the real name behind an anonymous post.
+        $recipients = get_enrolled_users($context, 'mod/task:respond', 0, 'u.*', null, 0, 0, true);
+        $staff = get_users_by_capability($context, 'mod/task:viewallresponses', 'u.id');
+        $staffids = [];
+        foreach ($staff as $staffuser) {
+            $staffids[(int)$staffuser->id] = true;
+        }
+
         $taskname = format_string($task->name, true, ['context' => $context]);
         $url = new \moodle_url('/mod/task/view.php', ['id' => $cm->id]);
-        $a = (object) ['author' => fullname($author), 'taskname' => $taskname];
         $subject = get_string('newresponsesubject', 'mod_task', $taskname);
-        $body = get_string($post->parentid ? 'newreplybody' : 'newresponsebody', 'mod_task', $a);
+        $realname = fullname($author);
+        $anonname = get_string('anonymous', 'mod_task');
+        $bodykey = $isreply ? 'newreplybody' : 'newresponsebody';
 
-        $recipients = get_users_by_capability($context, 'mod/task:receivenotification');
         foreach ($recipients as $recipient) {
-            if ((int)$recipient->id === (int)$post->userid) {
+            $recipientid = (int)$recipient->id;
+            if ($recipientid === (int)$post->userid) {
                 continue;
             }
+
+            $isstaff = isset($staffids[$recipientid]);
+            $preference = manager::effective_notification_preference((int)$task->id, $recipientid, $isstaff);
+            if (!manager::should_notify_for_post($preference, $isreply, $rootauthorid, $recipientid)) {
+                continue;
+            }
+
+            // Peers never see the real name behind an anonymous post; staff do.
+            $authorname = ($isanonymous && !$isstaff) ? $anonname : $realname;
+            $body = get_string($bodykey, 'mod_task', (object) ['author' => $authorname, 'taskname' => $taskname]);
 
             $message = new \core\message\message();
             $message->component = 'mod_task';

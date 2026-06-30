@@ -85,7 +85,6 @@ function task_add_instance($data, $mform = null) {
     $data->timecreated = time();
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
-    $data->notifyteacher = empty($data->notifyteacher) ? 0 : 1;
 
     $data->id = $DB->insert_record('task', $data);
 
@@ -123,7 +122,6 @@ function task_update_instance($data, $mform = null) {
     $data->id = $data->instance;
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
-    $data->notifyteacher = empty($data->notifyteacher) ? 0 : 1;
 
     if ($mform) {
         $context = context_module::instance($data->coursemodule);
@@ -163,6 +161,7 @@ function task_delete_instance($id) {
     }
     $DB->delete_records('task_post', ['taskid' => $id]);
     $DB->delete_records('task_lastviewed', ['taskid' => $id]);
+    $DB->delete_records('task_notifypref', ['taskid' => $id]);
     $DB->delete_records('task', ['id' => $id]);
 
     return true;

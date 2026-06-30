@@ -25,9 +25,9 @@
 defined('MOODLE_INTERNAL') || die();
 
 $messageproviders = [
-    // A new student response or reply was posted in a Task.
+    // A new response or reply was posted in a Task. Who is notified is governed
+    // by each participant's per-user notification preference, not a capability.
     'newresponse' => [
-        'capability' => 'mod/task:receivenotification',
         'defaults' => [
             'popup' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,
             'email' => MESSAGE_PERMITTED + MESSAGE_DEFAULT_ENABLED,

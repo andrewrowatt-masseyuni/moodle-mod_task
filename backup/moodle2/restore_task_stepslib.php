@@ -44,6 +44,7 @@ class restore_task_activity_structure_step extends restore_activity_structure_st
             $paths[] = new restore_path_element('task_post', '/activity/task/posts/post');
             $paths[] = new restore_path_element('task_reaction', '/activity/task/posts/post/reactions/reaction');
             $paths[] = new restore_path_element('task_lastviewed', '/activity/task/lastvieweds/lastviewed');
+            $paths[] = new restore_path_element('task_notifypref', '/activity/task/notifyprefs/notifypref');
         }
 
         return $this->prepare_activity_structure($paths);
@@ -115,6 +116,20 @@ class restore_task_activity_structure_step extends restore_activity_structure_st
         $data->taskid = $this->get_new_parentid('task');
         $data->userid = $this->get_mappingid('user', $data->userid);
         $DB->insert_record('task_lastviewed', $data);
+    }
+
+    /**
+     * Restore a per-user notification preference.
+     *
+     * @param array $data the element data
+     */
+    protected function process_task_notifypref($data) {
+        global $DB;
+
+        $data = (object) $data;
+        $data->taskid = $this->get_new_parentid('task');
+        $data->userid = $this->get_mappingid('user', $data->userid);
+        $DB->insert_record('task_notifypref', $data);
     }
 
     /**

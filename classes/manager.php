@@ -32,8 +32,29 @@ class manager {
     /** @var string Default emoji set as comma-separated shortcode:unicode pairs. */
     const DEFAULT_EMOJIS = 'thumbsup:👍,heart:❤️,laugh:😂,think:🤔,celebrate:🎉,surprise:😮,thanks:🙏';
 
+    /** @var int Notification preference: mute all notifications. */
+    const NOTIFY_NONE = 0;
+
+    /** @var int Notification preference: all new top-level responses. */
+    const NOTIFY_RESPONSES = 1;
+
+    /** @var int Notification preference: all new responses and all new replies. */
+    const NOTIFY_ALL = 2;
+
+    /** @var int Notification preference: only new replies within the user's own response thread. */
+    const NOTIFY_MYREPLIES = 3;
+
     /** @var array<string,string>|null Per-request cache of the parsed emoji set. */
     private static ?array $emojisetcache = null;
+
+    /**
+     * The recognised notification preferences in display order.
+     *
+     * @return int[] the preference values
+     */
+    public static function notification_preferences(): array {
+        return [self::NOTIFY_NONE, self::NOTIFY_RESPONSES, self::NOTIFY_ALL, self::NOTIFY_MYREPLIES];
+    }
 
     /**
      * Fetch a task record.
@@ -146,6 +167,7 @@ class manager {
         global $USER, $PAGE;
 
         $task = self::get_task($taskid);
+        $cm = get_coursemodule_from_instance('task', $taskid, 0, false, MUST_EXIST);
         $renderer = $PAGE->get_renderer('core');
 
         $canrespond = has_capability('mod/task:respond', $context);
@@ -179,6 +201,13 @@ class manager {
             ),
             'canrespond' => $canrespond,
             'canaddresponse' => $canaddresponse,
+            // The per-user notification preference panel is offered to anyone who
+            // can take part; it sits above the task description in the JS shell.
+            'shownotificationsettings' => $canrespond,
+            'notificationsettings' => [
+                'cmid' => (int)$cm->id,
+                'options' => self::notification_options($context, $taskid, (int)$USER->id),
+            ],
             'canviewall' => $canviewall,
             'canmanage' => $canmanage,
             'canreact' => $canrespond,
@@ -454,13 +483,11 @@ class manager {
             event\response_created::create_from_post($record, $cm, $context)->trigger();
         }
 
-        // Notify staff of new student activity when requested.
-        $task = self::get_task($taskid);
-        if ($task->notifyteacher && !$canviewall) {
-            $notification = new \mod_task\task\send_notification();
-            $notification->set_custom_data(['postid' => (int)$record->id]);
-            \core\task\manager::queue_adhoc_task($notification, true);
-        }
+        // Notify participants of the new post according to each recipient's own
+        // notification preference (resolved when the adhoc task runs).
+        $notification = new \mod_task\task\send_notification();
+        $notification->set_custom_data(['postid' => (int)$record->id]);
+        \core\task\manager::queue_adhoc_task($notification, true);
 
         return $record;
     }
@@ -659,6 +686,173 @@ class manager {
                 'timeviewed' => $now,
             ]);
         }
+    }
+
+    /**
+     * The current user's effective notification preference for a task.
+     *
+     * Returns the value the user has stored, or the role-based default when they
+     * have never chosen one.
+     *
+     * @param \context $context the module context
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @return int one of the NOTIFY_* constants
+     */
+    public static function get_notification_preference(\context $context, int $taskid, int $userid): int {
+        global $DB;
+        $stored = $DB->get_field('task_notifypref', 'preference', ['taskid' => $taskid, 'userid' => $userid]);
+        if ($stored !== false) {
+            return (int)$stored;
+        }
+        return self::default_notification_preference($context, $userid);
+    }
+
+    /**
+     * The role-based default notification preference.
+     *
+     * Staff (who can view all responses) default to being notified of all
+     * responses and replies; everyone else defaults to replies within their own
+     * response thread only.
+     *
+     * @param \context $context the module context
+     * @param int $userid the user id
+     * @return int one of the NOTIFY_* constants
+     */
+    public static function default_notification_preference(\context $context, int $userid): int {
+        return has_capability('mod/task:viewallresponses', $context, $userid)
+            ? self::NOTIFY_ALL
+            : self::NOTIFY_MYREPLIES;
+    }
+
+    /**
+     * The effective notification preference, given a pre-computed staff flag.
+     *
+     * A lower-cost variant of {@see get_notification_preference()} for bulk
+     * recipient evaluation, where the staff status of each candidate is already
+     * known (so no capability check is needed for the default).
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @param bool $isstaff whether the user can view all responses
+     * @return int one of the NOTIFY_* constants
+     */
+    public static function effective_notification_preference(int $taskid, int $userid, bool $isstaff): int {
+        global $DB;
+        $stored = $DB->get_field('task_notifypref', 'preference', ['taskid' => $taskid, 'userid' => $userid]);
+        if ($stored !== false) {
+            return (int)$stored;
+        }
+        return $isstaff ? self::NOTIFY_ALL : self::NOTIFY_MYREPLIES;
+    }
+
+    /**
+     * Store the current user's notification preference for a task.
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @param int $preference one of the NOTIFY_* constants
+     */
+    public static function set_notification_preference(int $taskid, int $userid, int $preference): void {
+        global $DB;
+
+        if (!in_array($preference, self::notification_preferences(), true)) {
+            throw new \invalid_parameter_exception('Invalid notification preference: ' . $preference);
+        }
+
+        $now = time();
+        $existing = $DB->get_record('task_notifypref', ['taskid' => $taskid, 'userid' => $userid]);
+        if ($existing) {
+            $DB->update_record('task_notifypref', (object) [
+                'id' => $existing->id,
+                'preference' => $preference,
+                'timemodified' => $now,
+            ]);
+        } else {
+            $DB->insert_record('task_notifypref', (object) [
+                'taskid' => $taskid,
+                'userid' => $userid,
+                'preference' => $preference,
+                'timemodified' => $now,
+            ]);
+        }
+    }
+
+    /**
+     * Build the notification preference button options for the settings panel.
+     *
+     * @param \context $context the module context
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @return array list of ['value' => int, 'label' => string, 'active' => bool]
+     */
+    public static function notification_options(\context $context, int $taskid, int $userid): array {
+        $current = self::get_notification_preference($context, $taskid, $userid);
+        $labels = [
+            self::NOTIFY_NONE => 'notifypref_none',
+            self::NOTIFY_RESPONSES => 'notifypref_responses',
+            self::NOTIFY_ALL => 'notifypref_all',
+            self::NOTIFY_MYREPLIES => 'notifypref_myreplies',
+        ];
+
+        $options = [];
+        foreach ($labels as $value => $stringkey) {
+            $options[] = [
+                'value' => $value,
+                'label' => get_string($stringkey, 'mod_task'),
+                'active' => ($value === $current),
+            ];
+        }
+        return $options;
+    }
+
+    /**
+     * Whether a user holding a preference should be notified of a given post.
+     *
+     * @param int $preference the recipient's NOTIFY_* preference
+     * @param bool $isreply whether the post is a reply (true) or a top-level response (false)
+     * @param int $rootauthorid the author of the top-level response in the reply's thread (0 for responses)
+     * @param int $recipientid the candidate recipient's user id
+     * @return bool
+     */
+    public static function should_notify_for_post(
+        int $preference,
+        bool $isreply,
+        int $rootauthorid,
+        int $recipientid
+    ): bool {
+        if ($preference === self::NOTIFY_NONE) {
+            return false;
+        }
+        if (!$isreply) {
+            // A new top-level response.
+            return $preference === self::NOTIFY_RESPONSES || $preference === self::NOTIFY_ALL;
+        }
+        // A new reply.
+        if ($preference === self::NOTIFY_ALL) {
+            return true;
+        }
+        if ($preference === self::NOTIFY_MYREPLIES) {
+            return $rootauthorid === $recipientid;
+        }
+        return false;
+    }
+
+    /**
+     * Find the author of the top-level response at the root of a post's thread.
+     *
+     * @param int $postid the post id to walk up from
+     * @return int the root response author's user id, or 0 if it cannot be resolved
+     */
+    public static function thread_root_author(int $postid): int {
+        global $DB;
+
+        $guard = 0;
+        $current = $DB->get_record('task_post', ['id' => $postid], 'id, parentid, userid');
+        while ($current && (int)$current->parentid !== 0 && $guard++ < 50) {
+            $current = $DB->get_record('task_post', ['id' => (int)$current->parentid], 'id, parentid, userid');
+        }
+        return $current ? (int)$current->userid : 0;
     }
 
     /**

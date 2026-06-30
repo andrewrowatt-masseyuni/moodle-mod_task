@@ -19,7 +19,7 @@ Feature: Task response gating
       | student2 | C1     | student        |
       | teacher1 | C1     | editingteacher |
     And the following "activities" exist:
-      | activity | name    | course | idnumber | taskdescription      | teacherresponse        | teacherresponseismodelanswer |
+      | activity | name    | course | idnumber | intro                | teacherresponse        | teacherresponseismodelanswer |
       | task     | My Task | C1     | task1    | What did you learn?  | This is the exemplar.  | 1                            |
 
   Scenario: A student cannot see the teacher response before responding

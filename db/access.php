@@ -84,15 +84,4 @@ $capabilities = [
             'manager' => CAP_ALLOW,
         ],
     ],
-
-    // Receive a notification for each new student response or reply.
-    'mod/task:receivenotification' => [
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_MODULE,
-        'archetypes' => [
-            'teacher' => CAP_ALLOW,
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW,
-        ],
-    ],
 ];

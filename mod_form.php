@@ -72,10 +72,6 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->setDefault('teacherresponseismodelanswer', 0);
         $mform->addHelpButton('teacherresponseismodelanswer', 'ismodelanswer', 'mod_task');
 
-        $mform->addElement('selectyesno', 'notifyteacher', get_string('notifyteacher', 'mod_task'));
-        $mform->setDefault('notifyteacher', 0);
-        $mform->addHelpButton('notifyteacher', 'notifyteacher', 'mod_task');
-
         $this->standard_coursemodule_elements();
 
         $this->add_action_buttons();

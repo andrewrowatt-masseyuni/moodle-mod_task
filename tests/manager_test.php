@@ -394,4 +394,210 @@ final class manager_test extends \advanced_testcase {
         manager::mark_viewed((int)$data['task']->id, (int)$data['student1']->id);
         $this->assertSame(0, manager::count_new_responses($cminfo, (int)$data['student1']->id));
     }
+
+    public function test_notification_preference_defaults_by_role(): void {
+        $data = $this->setup_course_task();
+
+        // Staff default to all responses and replies; students to replies to their own response.
+        $this->assertSame(
+            manager::NOTIFY_ALL,
+            manager::get_notification_preference($data['context'], (int)$data['task']->id, (int)$data['teacher']->id)
+        );
+        $this->assertSame(
+            manager::NOTIFY_MYREPLIES,
+            manager::get_notification_preference($data['context'], (int)$data['task']->id, (int)$data['student1']->id)
+        );
+    }
+
+    public function test_notification_preference_is_stored_and_returned(): void {
+        global $DB;
+
+        $data = $this->setup_course_task();
+
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_NONE);
+        $this->assertSame(
+            manager::NOTIFY_NONE,
+            manager::get_notification_preference($data['context'], (int)$data['task']->id, (int)$data['student1']->id)
+        );
+
+        // Updating overwrites the previous choice rather than inserting a duplicate.
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_ALL);
+        $this->assertSame(
+            manager::NOTIFY_ALL,
+            manager::get_notification_preference($data['context'], (int)$data['task']->id, (int)$data['student1']->id)
+        );
+        $this->assertEquals(
+            1,
+            $DB->count_records('task_notifypref', [
+                'taskid' => (int)$data['task']->id,
+                'userid' => (int)$data['student1']->id,
+            ])
+        );
+    }
+
+    public function test_set_notification_preference_rejects_invalid_value(): void {
+        $data = $this->setup_course_task();
+        $this->expectException(\invalid_parameter_exception::class);
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, 99);
+    }
+
+    public function test_notification_options_marks_current(): void {
+        $data = $this->setup_course_task();
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_RESPONSES);
+
+        $options = manager::notification_options($data['context'], (int)$data['task']->id, (int)$data['student1']->id);
+        $this->assertCount(4, $options);
+
+        $active = array_values(array_filter($options, fn($o) => $o['active']));
+        $this->assertCount(1, $active);
+        $this->assertSame(manager::NOTIFY_RESPONSES, $active[0]['value']);
+    }
+
+    public function test_should_notify_for_post_matrix(): void {
+        // A new top-level response (rootauthorid is irrelevant).
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_NONE, false, 0, 5));
+        $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_RESPONSES, false, 0, 5));
+        $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_ALL, false, 0, 5));
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_MYREPLIES, false, 0, 5));
+
+        // A new reply: only "all" and "my replies" (when the thread root is mine) match.
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_NONE, true, 5, 5));
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_RESPONSES, true, 5, 5));
+        $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_ALL, true, 99, 5));
+        $this->assertTrue(manager::should_notify_for_post(manager::NOTIFY_MYREPLIES, true, 5, 5));
+        $this->assertFalse(manager::should_notify_for_post(manager::NOTIFY_MYREPLIES, true, 99, 5));
+    }
+
+    public function test_thread_root_author_walks_to_top_level(): void {
+        $data = $this->setup_course_task();
+
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+        $reply = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+            'parentid' => $response->id,
+        ]);
+        $nestedreply = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['teacher']->id,
+            'parentid' => $reply->id,
+        ]);
+
+        // Every post in the thread resolves to the top-level response's author.
+        $this->assertSame((int)$data['student1']->id, manager::thread_root_author((int)$response->id));
+        $this->assertSame((int)$data['student1']->id, manager::thread_root_author((int)$reply->id));
+        $this->assertSame((int)$data['student1']->id, manager::thread_root_author((int)$nestedreply->id));
+    }
+
+    public function test_response_notifies_only_those_who_opted_in(): void {
+        $data = $this->setup_course_task();
+        $this->setUser($data['student1']);
+        $sink = $this->redirectMessages();
+
+        // The author (student1) posts a top-level response.
+        $response = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>My response.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $this->run_send_notification((int)$response->id);
+
+        // Teacher (default all) is notified; student2 (default my-replies) is not.
+        // The author is never notified of their own post.
+        $recipients = $this->message_recipient_ids($sink);
+        $this->assertSame([(int)$data['teacher']->id], $recipients);
+    }
+
+    public function test_reply_notifies_the_response_owner(): void {
+        $data = $this->setup_course_task();
+
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        $this->setUser($data['teacher']);
+        $sink = $this->redirectMessages();
+
+        // The teacher replies inside student1's response thread.
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>A reply.</p>',
+            false,
+            (int)$data['teacher']->id
+        );
+        $this->run_send_notification((int)$reply->id);
+
+        // Only the thread-root owner (student1) is notified; student2 is unrelated.
+        $recipients = $this->message_recipient_ids($sink);
+        $this->assertSame([(int)$data['student1']->id], $recipients);
+    }
+
+    public function test_response_notification_hides_anonymous_author_from_peers(): void {
+        $data = $this->setup_course_task();
+
+        // Opt student2 in to all new responses so they receive this one.
+        manager::set_notification_preference((int)$data['task']->id, (int)$data['student2']->id, manager::NOTIFY_RESPONSES);
+
+        $sink = $this->redirectMessages();
+
+        $this->setUser($data['student1']);
+        $response = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Anon response.</p>',
+            true,
+            (int)$data['student1']->id
+        );
+        $this->run_send_notification((int)$response->id);
+
+        $messages = $sink->get_messages();
+        $byuser = [];
+        foreach ($messages as $message) {
+            $byuser[(int)$message->useridto] = $message->fullmessage;
+        }
+
+        // The peer sees "Anonymous"; staff see the real name.
+        $this->assertArrayHasKey((int)$data['student2']->id, $byuser);
+        $this->assertStringContainsString(get_string('anonymous', 'mod_task'), $byuser[(int)$data['student2']->id]);
+        $this->assertStringNotContainsString(fullname($data['student1']), $byuser[(int)$data['student2']->id]);
+
+        $this->assertArrayHasKey((int)$data['teacher']->id, $byuser);
+        $this->assertStringContainsString(fullname($data['student1']), $byuser[(int)$data['teacher']->id]);
+    }
+
+    /**
+     * Run the notification adhoc task for a given post.
+     *
+     * @param int $postid the post id
+     */
+    protected function run_send_notification(int $postid): void {
+        $task = new \mod_task\task\send_notification();
+        $task->set_custom_data(['postid' => $postid]);
+        $task->execute();
+    }
+
+    /**
+     * Collect the sorted recipient user ids from a message sink.
+     *
+     * @param \phpunit_message_sink $sink the message sink
+     * @return int[] the recipient ids, sorted ascending
+     */
+    protected function message_recipient_ids(\phpunit_message_sink $sink): array {
+        $ids = [];
+        foreach ($sink->get_messages() as $message) {
+            $ids[] = (int)$message->useridto;
+        }
+        sort($ids);
+        return $ids;
+    }
 }

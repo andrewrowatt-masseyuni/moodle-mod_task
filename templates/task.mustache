@@ -32,6 +32,14 @@
         "taskdescription": "<p>What stood out to you?</p>",
         "canrespond": true,
         "canaddresponse": true,
+        "shownotificationsettings": true,
+        "notificationsettings": {
+            "cmid": 12,
+            "options": [
+                {"value": 0, "label": "Mute all notifications", "active": false},
+                {"value": 2, "label": "All new responses and replies", "active": true}
+            ]
+        },
         "canviewall": false,
         "cananonymous": true,
         "hasresponded": false,
@@ -47,12 +55,17 @@
 <div class="mod-task-activity" data-region="task-root" data-taskid="{{taskid}}">
 
   {{#showdescription}}
+    {{#shownotificationsettings}}
+      {{#notificationsettings}}
+        {{> mod_task/notification_settings }}
+      {{/notificationsettings}}
+    {{/shownotificationsettings}}
     {{> mod_task/description }}
   {{/showdescription}}
 
   {{#showteacherresponse}}
     <div class="mod-task-teacher-response" data-region="teacher-response">
-      <h2 class="h5 mod-task-teacher-response-header">
+      <h2 class="h5 mod-task-teacher-response-header d-flex justify-content-between">
         <span class="mod-task-teacher-response-title">{{#str}}teacherresponseheading, mod_task{{/str}}</span>
         {{#teacherresponseismodelanswer}}
           <span class="badge badge-success mod-task-model-badge">{{#str}}modelanswer, mod_task{{/str}}</span>

@@ -45,8 +45,42 @@ let lazyObserver = null;
 let globalsBound = false;
 
 /**
- * Bind page-wide listeners exactly once: close pickers on outside click, and
- * re-scan when the filter system reports new content (Snap partial render).
+ * Save the chosen notification preference for a Task.
+ *
+ * The settings panel is self-contained and rendered both inside the Task shell
+ * and (on the activity page) in the activity header, so this is bound once at
+ * the document level rather than per Task instance.
+ *
+ * @param {HTMLElement} button the clicked preference button
+ */
+const setNotificationPreference = (button) => {
+    const panel = button.closest('[data-region="task-notify-settings"]');
+    if (!panel) {
+        return;
+    }
+    const cmid = parseInt(panel.dataset.cmid, 10);
+    const preference = parseInt(button.dataset.pref, 10);
+    if (Number.isNaN(cmid) || Number.isNaN(preference)) {
+        return;
+    }
+
+    // Reflect the choice immediately; the save is best-effort.
+    panel.querySelectorAll('[data-action="set-notify-pref"]').forEach(btn => {
+        const active = btn === button;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    Ajax.call([{
+        methodname: 'mod_task_set_notification_preference',
+        args: {cmid, preference},
+    }])[0].catch(Notification.exception);
+};
+
+/**
+ * Bind page-wide listeners exactly once: close pickers on outside click, save
+ * notification preference changes, and re-scan when the filter system reports
+ * new content (Snap partial render).
  */
 const bindGlobals = () => {
     if (globalsBound) {
@@ -56,6 +90,10 @@ const bindGlobals = () => {
     document.addEventListener('click', (e) => {
         if (!e.target.closest('[data-region="reactions-bar"]')) {
             closeAllPickers();
+        }
+        const prefButton = e.target.closest('[data-action="set-notify-pref"]');
+        if (prefButton) {
+            setNotificationPreference(prefButton);
         }
     });
     document.addEventListener(filterEventTypes.filterContentUpdated, () => init());

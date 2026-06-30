@@ -79,4 +79,12 @@ $functions = [
         'ajax' => true,
         'loginrequired' => true,
     ],
+    'mod_task_set_notification_preference' => [
+        'classname' => 'mod_task\external\set_notification_preference',
+        'description' => 'Set the current user\'s notification preference for a Task.',
+        'type' => 'write',
+        'ajax' => true,
+        'loginrequired' => true,
+        'capabilities' => 'mod/task:respond',
+    ],
 ];

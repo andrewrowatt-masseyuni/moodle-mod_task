@@ -93,5 +93,31 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026063001, 'task');
     }
 
+    if ($oldversion < 2026070100) {
+        // Per-activity "Notify me of new responses" is replaced by a per-user
+        // notification preference. Create the new table and drop the old flag.
+        $table = new xmldb_table('task_notifypref');
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('taskid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('preference', XMLDB_TYPE_INTEGER, '2', null, XMLDB_NOTNULL, null, '2');
+        $table->add_field('timemodified', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '0');
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('taskid_fk', XMLDB_KEY_FOREIGN, ['taskid'], 'task', ['id']);
+        $table->add_key('userid_fk', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+        $table->add_index('task_user_unique', XMLDB_INDEX_UNIQUE, ['taskid', 'userid']);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        $tasktable = new xmldb_table('task');
+        $notifyfield = new xmldb_field('notifyteacher');
+        if ($dbman->field_exists($tasktable, $notifyfield)) {
+            $dbman->drop_field($tasktable, $notifyfield);
+        }
+
+        upgrade_mod_savepoint(true, 2026070100, 'task');
+    }
+
     return true;
 }

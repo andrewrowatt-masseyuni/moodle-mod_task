@@ -38,14 +38,38 @@ class activity_header extends \core\output\activity_header {
      * @return array the template context
      */
     public function export_for_template(\core\output\renderer_base $output): array {
+        global $USER;
+
         $data = parent::export_for_template($output);
 
         // The description is only present when the activity has an intro and the
         // page layout does not suppress it; only then is the panel meaningful.
         if (!empty($data['description'])) {
-            $data['description'] = $output->render_from_template('mod_task/description', [
+            $description = $output->render_from_template('mod_task/description', [
                 'taskdescription' => $data['description'],
             ]);
+
+            // Participants get the per-user notification settings panel directly
+            // above the task description, mirroring the live Task shell. Use the
+            // header's own page reference (the global $PAGE->cm is not reliably
+            // populated at the point the header is exported).
+            $notification = '';
+            $cm = $this->page->cm;
+            if (!empty($cm) && $cm->modname === 'task') {
+                $context = \context_module::instance($cm->id);
+                if (has_capability('mod/task:respond', $context)) {
+                    $notification = $output->render_from_template('mod_task/notification_settings', [
+                        'cmid' => (int)$cm->id,
+                        'options' => \mod_task\manager::notification_options(
+                            $context,
+                            (int)$cm->instance,
+                            (int)$USER->id
+                        ),
+                    ]);
+                }
+            }
+
+            $data['description'] = $notification . $description;
         }
 
         return $data;
