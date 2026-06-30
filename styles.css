@@ -1,0 +1,240 @@
+/* mod_task styles. */
+
+.mod-task-activity {
+    margin: 0.5rem 0;
+}
+
+/* Skeleton shown before hydration. */
+.mod-task-skeleton-block {
+    background: #e9ecef;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+.mod-task-skeleton-title {
+    height: 1.25rem;
+    width: 40%;
+}
+.mod-task-skeleton-content {
+    height: 3rem;
+    width: 100%;
+}
+.mod-task-skeleton-trigger {
+    height: 2.25rem;
+    width: 12rem;
+}
+
+/* Task description and teacher response blocks. */
+.mod-task-description {
+    margin-bottom: 1rem;
+}
+.mod-task-teacher-response {
+    border: 1px solid #d1d5db;
+    border-left: 4px solid #28a745;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+}
+.mod-task-teacher-response-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+.mod-task-model-badge {
+    font-weight: 600;
+}
+
+/* Composer. */
+.mod-task-composer {
+    margin-bottom: 1rem;
+}
+.mod-task-composer-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+.mod-task-composer-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.mod-task-composer-trigger {
+    width: 100%;
+    text-align: left;
+}
+.mod-task-editor {
+    background: #fff;
+    min-height: 6rem;
+}
+.mod-task-anon-check {
+    margin: 0.5rem 0;
+}
+.mod-task-composer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+/* Responses header and sort. */
+.mod-task-responses-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+.mod-task-responses-count {
+    font-weight: 600;
+}
+.mod-task-sort-btn {
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 0.1rem 0.4rem;
+    cursor: pointer;
+}
+.mod-task-sort-active {
+    color: #0f6cbf;
+    font-weight: 600;
+}
+
+/* Posts. */
+.mod-task-post {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+}
+.mod-task-post-avatar img.userpicture {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+}
+.mod-task-post-body {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.mod-task-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+.mod-task-post-author {
+    font-weight: 600;
+}
+.mod-task-post-time {
+    color: #6c757d;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+.mod-task-post-edited {
+    font-style: italic;
+    margin-left: 0.4rem;
+}
+.mod-task-post-content {
+    overflow-wrap: anywhere;
+}
+.mod-task-post-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+}
+.mod-task-action {
+    background: none;
+    border: none;
+    color: #6c757d;
+    padding: 0.1rem 0.2rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.mod-task-action:hover {
+    color: #0f6cbf;
+}
+.mod-task-action-delete:hover {
+    color: #d9534f;
+}
+.mod-task-replies {
+    margin-left: 1.5rem;
+    border-left: 2px solid #eee;
+    padding-left: 0.75rem;
+}
+.mod-task-post-deleted .mod-task-post-content {
+    font-style: italic;
+}
+
+/* Reactions. */
+.mod-task-reactions-bar {
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.25rem;
+}
+.mod-task-reactions-picker-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+.mod-task-reactions-trigger {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 0.2rem;
+    line-height: 0;
+}
+.mod-task-reactions-trigger:hover {
+    background: #f0f0f0;
+    color: #0f6cbf;
+}
+/* Picker is positioned with fixed coordinates by JS to escape overflow:hidden parents. */
+.mod-task-reactions-picker {
+    position: fixed;
+    z-index: 1080;
+    display: flex;
+    gap: 0.2rem;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 0.3rem 0.5rem;
+}
+.mod-task-reactions-picker-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 0.1rem 0.2rem;
+    border-radius: 4px;
+}
+.mod-task-reactions-picker-btn:hover,
+.mod-task-reactions-selected {
+    background: #e7f1fb;
+}
+.mod-task-reactions-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #f0f2f5;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.05rem 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.mod-task-reactions-pill.mod-task-reactions-selected {
+    background: #e7f1fb;
+    border-color: #0f6cbf;
+}
+.mod-task-reactions-count {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Empty / gating. */
+.mod-task-empty {
+    color: #6c757d;
+    font-style: italic;
+    padding: 0.5rem 0;
+}

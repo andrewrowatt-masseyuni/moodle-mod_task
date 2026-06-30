@@ -1,0 +1,92 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_task/post
+
+    A single response or reply. The reactions bar is injected into
+    [data-region="post-actions"] by mod_task/view.
+
+    Data attributes required for JS:
+    * data-region="post"
+    * data-postid
+
+    Context variables required for this template: see mod_task\manager::build_post_view().
+
+    Example context (json):
+    {
+        "id": 42,
+        "parentid": 0,
+        "content": "<p>Hello</p>",
+        "deleted": false,
+        "edited": false,
+        "timecreated": 1714608000,
+        "timecreatediso": "2024-05-02 00:00",
+        "authorname": "Jane Doe",
+        "authorrole": "Teacher",
+        "isanonymous": false,
+        "showanonymousbadge": false,
+        "profileurl": "https://example.com/user/profile.php?id=2",
+        "avatar": "<img class=\"userpicture\" src=\"https://example.com/u.png\" alt=\"\">",
+        "canedit": true,
+        "candelete": true,
+        "canreply": true,
+        "indent": 0
+    }
+}}
+<div class="mod-task-post {{#deleted}}mod-task-post-deleted{{/deleted}}" id="mod-task-post-{{id}}"
+  data-region="post" data-postid="{{id}}" data-parentid="{{parentid}}" data-indent="{{indent}}">
+  <div class="mod-task-post-avatar">
+    {{#profileurl}}<a href="{{profileurl}}">{{{avatar}}}</a>{{/profileurl}}
+    {{^profileurl}}{{{avatar}}}{{/profileurl}}
+  </div>
+  <div class="mod-task-post-body">
+    <div class="mod-task-post-meta">
+      {{#profileurl}}<a class="mod-task-post-author" href="{{profileurl}}">{{authorname}}</a>{{/profileurl}}
+      {{^profileurl}}<span class="mod-task-post-author">{{authorname}}</span>{{/profileurl}}
+      {{#authorrole}}<span class="badge badge-info mod-task-post-role">{{authorrole}}</span>{{/authorrole}}
+      {{#showanonymousbadge}}<span class="badge badge-secondary mod-task-post-anon">{{#str}}anonymousbadge, mod_task{{/str}}</span>{{/showanonymousbadge}}
+    </div>
+    <div class="mod-task-post-time">
+      <span data-region="time-ago" data-timestamp="{{timecreated}}" title="{{timecreatediso}}">{{timecreatediso}}</span>
+      {{#edited}}<span class="mod-task-post-edited">{{#str}}edited, mod_task{{/str}}</span>{{/edited}}
+    </div>
+    {{#deleted}}
+      <div class="mod-task-post-content text-muted">{{#str}}deleted_post, mod_task{{/str}}</div>
+    {{/deleted}}
+    {{^deleted}}
+      <div class="mod-task-post-content" data-region="post-content">{{{content}}}</div>
+      <div class="mod-task-post-actions" data-region="post-actions">
+        {{#canreply}}
+          <button type="button" class="mod-task-action" data-action="reply">
+            <i class="fa fa-reply" aria-hidden="true"></i> <span>{{#str}}reply, mod_task{{/str}}</span>
+          </button>
+        {{/canreply}}
+        {{#canedit}}
+          <button type="button" class="mod-task-action" data-action="edit">
+            <i class="fa fa-pencil" aria-hidden="true"></i> <span>{{#str}}edit, mod_task{{/str}}</span>
+          </button>
+        {{/canedit}}
+        {{#candelete}}
+          <button type="button" class="mod-task-action mod-task-action-delete" data-action="delete">
+            <i class="fa fa-trash" aria-hidden="true"></i> <span>{{#str}}delete, mod_task{{/str}}</span>
+          </button>
+        {{/candelete}}
+      </div>
+    {{/deleted}}
+    <div class="mod-task-replies" data-region="replies"></div>
+  </div>
+</div>

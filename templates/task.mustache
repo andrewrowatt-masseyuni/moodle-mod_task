@@ -1,0 +1,117 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_task/task
+
+    The live Task shell rendered into the placeholder by mod_task/view.
+
+    Data attributes required for JS:
+    * data-region="task-root"
+
+    Context variables required for this template: see mod_task\manager::get_task_view().
+
+    Example context (json):
+    {
+        "taskid": 7,
+        "name": "Reflect on the reading",
+        "taskdescription": "<p>What stood out to you?</p>",
+        "canrespond": true,
+        "canviewall": false,
+        "cananonymous": true,
+        "hasresponded": false,
+        "canseeresponses": false,
+        "showteacherresponse": false,
+        "teacherresponse": "",
+        "teacherresponseismodelanswer": false,
+        "postcount": 0,
+        "currentuseravatar": "<img class=\"userpicture\" src=\"https://example.com/u.png\" alt=\"\">",
+        "currentuserprofileurl": "https://example.com/user/profile.php?id=2"
+    }
+}}
+<div class="mod-task-activity" data-region="task-root" data-taskid="{{taskid}}">
+
+  <div class="mod-task-description" data-region="task-description">
+    {{{taskdescription}}}
+  </div>
+
+  {{#showteacherresponse}}
+    <div class="mod-task-teacher-response" data-region="teacher-response">
+      <div class="mod-task-teacher-response-header">
+        <span class="mod-task-teacher-response-title">{{#str}}teacherresponseheading, mod_task{{/str}}</span>
+        {{#teacherresponseismodelanswer}}
+          <span class="badge badge-success mod-task-model-badge">{{#str}}modelanswer, mod_task{{/str}}</span>
+        {{/teacherresponseismodelanswer}}
+      </div>
+      <div class="mod-task-teacher-response-body">{{{teacherresponse}}}</div>
+    </div>
+  {{/showteacherresponse}}
+
+  {{^canseeresponses}}
+    <div class="mod-task-gating-notice alert alert-info" role="note" data-region="gating-notice">
+      {{#str}}mustrespondfirst, mod_task{{/str}}
+    </div>
+  {{/canseeresponses}}
+
+  {{#canrespond}}
+    <div class="mod-task-composer" data-region="composer">
+      <div class="mod-task-composer-row">
+        <div class="mod-task-post-avatar" data-region="composer-avatar">
+          {{#currentuserprofileurl}}<a href="{{currentuserprofileurl}}">{{{currentuseravatar}}}</a>{{/currentuserprofileurl}}
+          {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
+        </div>
+        <div class="mod-task-composer-main">
+          <button type="button" class="mod-task-composer-trigger btn btn-outline-secondary"
+            data-region="composer-collapsed" data-action="open-composer">
+            {{#hasresponded}}{{#str}}addanotherresponse, mod_task{{/str}}{{/hasresponded}}
+            {{^hasresponded}}{{#str}}addresponse, mod_task{{/str}}{{/hasresponded}}
+          </button>
+          <div class="mod-task-composer-expanded d-none" data-region="composer-expanded">
+            <div class="mod-task-editor" data-region="editor"></div>
+            {{#cananonymous}}
+              <div class="form-check mod-task-anon-check">
+                <input class="form-check-input" type="checkbox" id="mod-task-anon-{{taskid}}" data-region="anonymous-toggle">
+                <label class="form-check-label" for="mod-task-anon-{{taskid}}">
+                  {{#str}}respondanonymously, mod_task{{/str}}
+                </label>
+              </div>
+            {{/cananonymous}}
+            <div class="mod-task-composer-actions">
+              <button type="button" class="btn btn-link" data-action="cancel-compose">{{#str}}cancel, mod_task{{/str}}</button>
+              <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}post, mod_task{{/str}}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {{/canrespond}}
+
+  {{#canseeresponses}}
+    <div class="mod-task-responses-header">
+      <span class="mod-task-responses-count" data-region="post-count"></span>
+      <div class="mod-task-sort">
+        <button type="button" class="mod-task-sort-btn mod-task-sort-active" data-action="sort" data-sort="newest">{{#str}}newest, mod_task{{/str}}</button>
+        <button type="button" class="mod-task-sort-btn" data-action="sort" data-sort="oldest">{{#str}}oldest, mod_task{{/str}}</button>
+      </div>
+    </div>
+
+    <div class="mod-task-posts" data-region="posts" aria-live="polite"></div>
+
+    <div class="mod-task-empty {{#postcount}}d-none{{/postcount}}" data-region="empty">
+      {{#str}}befirsttorespond, mod_task{{/str}}
+    </div>
+  {{/canseeresponses}}
+</div>
