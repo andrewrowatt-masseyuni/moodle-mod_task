@@ -115,6 +115,9 @@ class TaskView {
     constructor(root) {
         this.root = root;
         this.cmid = parseInt(root.dataset.cmid, 10);
+        // The activity page suppresses the description (the theme renders the
+        // activity intro itself); a {task:Name} filter embed shows it.
+        this.showDescription = root.dataset.showdescription !== '0';
         this.data = null;
         this.emojis = {};
         this.sortMode = 'newest';
@@ -148,6 +151,7 @@ class TaskView {
      */
     async applyData(data) {
         this.data = data;
+        data.showdescription = this.showDescription;
         this.emojis = {};
         (data.emojis || []).forEach(e => {
             this.emojis[e.shortcode] = e.unicode;
@@ -159,7 +163,23 @@ class TaskView {
         const {html, js} = await Templates.renderForPromise('mod_task/task', data);
         await Templates.replaceNodeContents(this.root, html, js);
         await this.renderPosts();
+        await this.initComposer();
         this.root.addEventListener('click', this.onClick.bind(this));
+    }
+
+    /**
+     * Initialise the always-visible response composer editor, if one is shown.
+     *
+     * The "Add your response" button has been replaced by the editor panel, so
+     * the editor is created eagerly whenever the composer is present.
+     */
+    async initComposer() {
+        const expanded = this.root.querySelector('[data-region="composer-expanded"]');
+        if (!expanded) {
+            return;
+        }
+        await loadQuill();
+        this.composerEditor = makeEditor(expanded.querySelector('[data-region="editor"]'));
     }
 
     /**
@@ -235,8 +255,6 @@ class TaskView {
             return;
         }
         switch (target.dataset.action) {
-            case 'open-composer': this.openComposer(); break;
-            case 'cancel-compose': this.cancelComposer(); break;
             case 'submit-compose': this.submitComposer(); break;
             case 'sort': this.changeSort(target.dataset.sort); break;
             case 'reply': this.openReply(target); break;
@@ -257,31 +275,6 @@ class TaskView {
     anonChecked(scope) {
         const cb = scope.querySelector('[data-region="anonymous-toggle"]');
         return !!(cb && cb.checked);
-    }
-
-    async openComposer() {
-        const collapsed = this.root.querySelector('[data-region="composer-collapsed"]');
-        const expanded = this.root.querySelector('[data-region="composer-expanded"]');
-        if (!collapsed || !expanded) {
-            return;
-        }
-        collapsed.classList.add('d-none');
-        expanded.classList.remove('d-none');
-        if (!this.composerEditor) {
-            await loadQuill();
-            this.composerEditor = makeEditor(expanded.querySelector('[data-region="editor"]'));
-        }
-        this.composerEditor.focus();
-    }
-
-    cancelComposer() {
-        const collapsed = this.root.querySelector('[data-region="composer-collapsed"]');
-        const expanded = this.root.querySelector('[data-region="composer-expanded"]');
-        if (this.composerEditor) {
-            this.composerEditor.setText('');
-        }
-        expanded.classList.add('d-none');
-        collapsed.classList.remove('d-none');
     }
 
     async submitComposer() {

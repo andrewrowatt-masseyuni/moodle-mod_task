@@ -323,7 +323,8 @@ class manager {
         if ($post->deleted) {
             $avatar = self::neutral_avatar($renderer);
         } else if ($showrealname && $author) {
-            $authorname = fullname($author);
+            // The viewer's own posts are labelled "You" rather than their name.
+            $authorname = $isown ? get_string('you', 'mod_task') : fullname($author);
             $profileurl = (new \moodle_url('/user/profile.php', ['id' => $author->id]))->out(false);
             $avatar = $renderer->user_picture($author, ['size' => 64, 'link' => false]);
             $authorrole = self::user_role_label($context, $authorid, $roles[$authorid] ?? null);

@@ -54,10 +54,11 @@ $PAGE->set_context($context);
 $PAGE->set_activity_record($task);
 
 echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($task->name));
+// echo $OUTPUT->heading(format_string($task->name));
 
-// The task description (the standard intro field) is rendered inside the live
-// Task shell below, so it is not echoed separately here.
-echo \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id);
+// On the activity page the theme already renders the activity intro (the Task
+// description), so the live Task shell must not render it again. A {task:Name}
+// filter embed has no such theme-rendered intro, so there it stays visible.
+echo \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id, false);
 
 echo $OUTPUT->footer();

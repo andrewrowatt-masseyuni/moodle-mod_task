@@ -28,8 +28,10 @@
     {
         "taskid": 7,
         "name": "Reflect on the reading",
+        "showdescription": true,
         "taskdescription": "<p>What stood out to you?</p>",
         "canrespond": true,
+        "canaddresponse": true,
         "canviewall": false,
         "cananonymous": true,
         "hasresponded": false,
@@ -44,9 +46,11 @@
 }}
 <div class="mod-task-activity" data-region="task-root" data-taskid="{{taskid}}">
 
-  <div class="mod-task-description" data-region="task-description">
-    {{{taskdescription}}}
-  </div>
+  {{#showdescription}}
+    <div class="mod-task-description" data-region="task-description">
+      {{{taskdescription}}}
+    </div>
+  {{/showdescription}}
 
   {{#showteacherresponse}}
     <div class="mod-task-teacher-response" data-region="teacher-response">
@@ -66,7 +70,7 @@
     </div>
   {{/canseeresponses}}
 
-  {{#canrespond}}
+  {{#canaddresponse}}
     <div class="mod-task-composer" data-region="composer">
       <div class="mod-task-composer-row">
         <div class="mod-task-post-avatar" data-region="composer-avatar">
@@ -74,12 +78,7 @@
           {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
         </div>
         <div class="mod-task-composer-main">
-          <button type="button" class="mod-task-composer-trigger btn btn-outline-secondary"
-            data-region="composer-collapsed" data-action="open-composer">
-            {{#hasresponded}}{{#str}}addanotherresponse, mod_task{{/str}}{{/hasresponded}}
-            {{^hasresponded}}{{#str}}addresponse, mod_task{{/str}}{{/hasresponded}}
-          </button>
-          <div class="mod-task-composer-expanded d-none" data-region="composer-expanded">
+          <div class="mod-task-composer-expanded" data-region="composer-expanded">
             <div class="mod-task-editor" data-region="editor"></div>
             {{#cananonymous}}
               <div class="form-check mod-task-anon-check">
@@ -90,14 +89,13 @@
               </div>
             {{/cananonymous}}
             <div class="mod-task-composer-actions">
-              <button type="button" class="btn btn-link" data-action="cancel-compose">{{#str}}cancel, mod_task{{/str}}</button>
               <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}post, mod_task{{/str}}</button>
             </div>
           </div>
         </div>
       </div>
     </div>
-  {{/canrespond}}
+  {{/canaddresponse}}
 
   {{#canseeresponses}}
     <div class="mod-task-responses-header">

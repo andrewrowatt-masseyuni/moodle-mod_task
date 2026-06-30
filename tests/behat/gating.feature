@@ -38,6 +38,29 @@ Feature: Task response gating
     And I should see "This is the exemplar."
     And I should see "A peer response from student two"
 
+  Scenario: The response editor is shown directly, not behind a button
+    When I am on the "My Task" "task activity" page logged in as student1
+    Then "Post" "button" should exist
+    And I should not see "Add your response"
+
+  Scenario: A student cannot edit or delete their own response
+    Given the following "mod_task > responses" exist:
+      | task  | user     | content         |
+      | task1 | student1 | My own response |
+    When I am on the "My Task" "task activity" page logged in as student1
+    Then I should see "My own response"
+    But "Edit" "button" should not exist in the "[data-region=\"posts\"]" "css_element"
+    And "Delete" "button" should not exist in the "[data-region=\"posts\"]" "css_element"
+
+  Scenario: A teacher can edit and delete responses
+    Given the following "mod_task > responses" exist:
+      | task  | user     | content         |
+      | task1 | student1 | My own response |
+    When I am on the "My Task" "task activity" page logged in as teacher1
+    Then I should see "My own response"
+    And "Edit" "button" should exist in the "[data-region=\"posts\"]" "css_element"
+    And "Delete" "button" should exist in the "[data-region=\"posts\"]" "css_element"
+
   Scenario: Anonymous responses hide the author name from peers
     Given the following "mod_task > responses" exist:
       | task  | user     | content                     | anonymous |

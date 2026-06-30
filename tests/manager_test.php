@@ -128,6 +128,123 @@ final class manager_test extends \advanced_testcase {
         $this->assertCount(1, $view['posts']);
     }
 
+    public function test_student_limited_to_one_response(): void {
+        $data = $this->setup_course_task();
+        $this->setUser($data['student1']);
+
+        $first = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>My one response.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $this->assertGreaterThan(0, $first->id);
+        $this->assertFalse(
+            manager::get_task_view($data['context'], (int)$data['task']->id)['canaddresponse'],
+            'The composer is withdrawn once the student has responded'
+        );
+
+        // A second top-level response is rejected.
+        try {
+            manager::create_post(
+                $data['context'],
+                (int)$data['task']->id,
+                0,
+                '<p>A second response.</p>',
+                false,
+                (int)$data['student1']->id
+            );
+            $this->fail('A second response should be rejected');
+        } catch (\moodle_exception $e) {
+            $this->assertSame(get_string('error_alreadyresponded', 'mod_task'), $e->getMessage());
+        }
+
+        // But replies to the response are unlimited.
+        $reply1 = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$first->id,
+            '<p>Reply one.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $reply2 = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$first->id,
+            '<p>Reply two.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $this->assertGreaterThan(0, $reply1->id);
+        $this->assertGreaterThan(0, $reply2->id);
+    }
+
+    public function test_staff_may_post_multiple_responses(): void {
+        $data = $this->setup_course_task();
+        $this->setUser($data['teacher']);
+
+        $one = manager::create_post($data['context'], (int)$data['task']->id, 0, '<p>One.</p>', false, (int)$data['teacher']->id);
+        $two = manager::create_post($data['context'], (int)$data['task']->id, 0, '<p>Two.</p>', false, (int)$data['teacher']->id);
+        $this->assertGreaterThan(0, $one->id);
+        $this->assertGreaterThan(0, $two->id);
+        $this->assertTrue(manager::get_task_view($data['context'], (int)$data['task']->id)['canaddresponse']);
+    }
+
+    public function test_students_cannot_edit_or_delete_their_post(): void {
+        global $DB;
+
+        $data = $this->setup_course_task();
+        $post = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        // The view offers the student no edit/delete affordance on their own post.
+        $this->setUser($data['student1']);
+        $row = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
+        $this->assertFalse($row['canedit']);
+        $this->assertFalse($row['candelete']);
+
+        // And the operations are refused server-side.
+        try {
+            manager::edit_post($data['context'], (int)$post->id, '<p>Sneaky edit.</p>', (int)$data['student1']->id);
+            $this->fail('A student editing their post should be refused');
+        } catch (\required_capability_exception $e) {
+            $this->assertNotEmpty($e->getMessage());
+        }
+        try {
+            manager::delete_post($data['context'], (int)$post->id, (int)$data['student1']->id);
+            $this->fail('A student deleting their post should be refused');
+        } catch (\required_capability_exception $e) {
+            $this->assertNotEmpty($e->getMessage());
+        }
+
+        // The post is untouched.
+        $this->assertEquals(0, $DB->get_field('task_post', 'deleted', ['id' => $post->id]));
+    }
+
+    public function test_staff_can_edit_and_delete_any_post(): void {
+        $data = $this->setup_course_task();
+        $post = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        $this->setUser($data['teacher']);
+        $row = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
+        $this->assertTrue($row['canedit']);
+        $this->assertTrue($row['candelete']);
+
+        manager::edit_post($data['context'], (int)$post->id, '<p>Moderated.</p>', (int)$data['teacher']->id);
+        manager::delete_post($data['context'], (int)$post->id, (int)$data['teacher']->id);
+
+        $row = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
+        $this->assertTrue($row['deleted']);
+    }
+
     public function test_anonymous_hidden_from_peers_but_visible_to_teacher(): void {
         $data = $this->setup_course_task();
 
@@ -156,6 +273,41 @@ final class manager_test extends \advanced_testcase {
         $teacherview = $this->find_post($view, (int)$anonpost->id);
         $this->assertTrue($teacherview['showanonymousbadge']);
         $this->assertStringContainsString(fullname($data['student2']), $teacherview['authorname']);
+    }
+
+    public function test_own_posts_labelled_you(): void {
+        $data = $this->setup_course_task();
+
+        // A student's own response is labelled "You" when they view it.
+        $this->setUser($data['student1']);
+        $post = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Mine.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $ownview = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
+        $this->assertSame(get_string('you', 'mod_task'), $ownview['authorname']);
+
+        // Even an anonymous post reads "You" to its author, who still sees the badge.
+        $anonpost = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$post->id,
+            '<p>Anon reply.</p>',
+            true,
+            (int)$data['student1']->id
+        );
+        $anonview = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$anonpost->id);
+        $this->assertSame(get_string('you', 'mod_task'), $anonview['authorname']);
+        $this->assertTrue($anonview['showanonymousbadge']);
+
+        // Another user's post keeps its real name, never "You".
+        $this->setUser($data['teacher']);
+        $teacherview = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
+        $this->assertSame(fullname($data['student1']), $teacherview['authorname']);
     }
 
     public function test_staff_cannot_post_anonymously(): void {

@@ -64,14 +64,13 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->setType('teacherresponse_editor', PARAM_RAW);
         $mform->addHelpButton('teacherresponse_editor', 'teacherresponse', 'mod_task');
 
-        $mform->addElement(
+        $modelanswer = $mform->addElement(
             'selectyesno',
             'teacherresponseismodelanswer',
             get_string('ismodelanswer', 'mod_task')
         );
         $mform->setDefault('teacherresponseismodelanswer', 0);
         $mform->addHelpButton('teacherresponseismodelanswer', 'ismodelanswer', 'mod_task');
-        $mform->disabledIf('teacherresponseismodelanswer', 'teacherresponse_editor[text]', 'eq', '');
 
         $mform->addElement('selectyesno', 'notifyteacher', get_string('notifyteacher', 'mod_task'));
         $mform->setDefault('notifyteacher', 0);

@@ -43,8 +43,12 @@ function xmldb_task_upgrade($oldversion) {
 
         if ($dbman->field_exists($table, $descfield)) {
             $fs = get_file_storage();
-            $tasks = $DB->get_records('task', null, '',
-                'id, course, intro, introformat, taskdescription, taskdescriptionformat');
+            $tasks = $DB->get_records(
+                'task',
+                null,
+                '',
+                'id, course, intro, introformat, taskdescription, taskdescriptionformat'
+            );
             foreach ($tasks as $task) {
                 $cm = get_coursemodule_from_instance('task', $task->id, $task->course, false, IGNORE_MISSING);
                 if (!$cm) {
@@ -58,8 +62,16 @@ function xmldb_task_upgrade($oldversion) {
                 // Only adopt the old description where the intro has nothing of its own.
                 if ($introempty && $hasdescription) {
                     foreach ($fs->get_area_files($context->id, 'mod_task', 'taskdescription', 0, 'id', false) as $file) {
-                        if (!$fs->file_exists($context->id, 'mod_task', 'intro', 0,
-                                $file->get_filepath(), $file->get_filename())) {
+                        if (
+                            !$fs->file_exists(
+                                $context->id,
+                                'mod_task',
+                                'intro',
+                                0,
+                                $file->get_filepath(),
+                                $file->get_filename()
+                            )
+                        ) {
                             $fs->create_file_from_storedfile(['filearea' => 'intro'], $file);
                         }
                     }

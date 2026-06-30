@@ -86,6 +86,7 @@ class helper {
             'name' => new external_value(PARAM_TEXT, 'Task name'),
             'taskdescription' => new external_value(PARAM_RAW, 'Formatted task description HTML'),
             'canrespond' => new external_value(PARAM_BOOL, 'Viewer can post a response/reply'),
+            'canaddresponse' => new external_value(PARAM_BOOL, 'Viewer may still post a top-level response'),
             'canviewall' => new external_value(PARAM_BOOL, 'Viewer is staff (sees all without responding)'),
             'canmanage' => new external_value(PARAM_BOOL, 'Viewer can moderate posts'),
             'canreact' => new external_value(PARAM_BOOL, 'Viewer can react'),

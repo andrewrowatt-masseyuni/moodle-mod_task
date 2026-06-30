@@ -45,9 +45,17 @@ class embed {
      * @param \renderer_base $output the page output renderer
      * @param int $cmid the Task course module id
      * @param int $contextid the Task module context id
+     * @param bool $showdescription whether the Task shell should render the
+     *        description (intro). False on the activity page, where the theme
+     *        already renders the activity intro; true for {task:Name} embeds.
      * @return string the placeholder HTML
      */
-    public static function placeholder(\renderer_base $output, int $cmid, int $contextid): string {
+    public static function placeholder(
+        \renderer_base $output,
+        int $cmid,
+        int $contextid,
+        bool $showdescription = true
+    ): string {
         global $PAGE;
 
         if (!self::$jsrequested) {
@@ -60,6 +68,7 @@ class embed {
             'uid' => 'mod_task_' . $cmid . '_' . $contextid . '_' . self::$counter,
             'cmid' => $cmid,
             'contextid' => $contextid,
+            'showdescription' => $showdescription ? 1 : 0,
         ]);
     }
 }

@@ -24,8 +24,6 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$string['addanotherresponse'] = 'Add another response';
-$string['addresponse'] = 'Add your response';
 $string['anonymous'] = 'Anonymous';
 $string['anonymousbadge'] = 'Anonymous';
 $string['befirsttorespond'] = 'Be the first to respond.';
@@ -37,6 +35,7 @@ $string['edit'] = 'Edit';
 $string['edited'] = 'edited';
 $string['emojis'] = 'Reaction emoji';
 $string['emojis_desc'] = 'Comma-separated list of shortcode:emoji pairs offered as reactions, e.g. <code>thumbsup:👍,heart:❤️</code>.';
+$string['error_alreadyresponded'] = 'You have already posted your response to this task. You can reply to responses, but you cannot post another response.';
 $string['error_cannotrespondyet'] = 'You cannot do that yet.';
 $string['error_emptypost'] = 'Your post cannot be empty.';
 $string['error_invalidtask'] = 'Invalid Task.';
@@ -110,3 +109,4 @@ $string['teacherresponseheading'] = 'Teacher response';
 $string['totalreactions'] = 'reactions';
 $string['viewtask'] = 'View Task';
 $string['xnewresponses'] = '{$a} new responses';
+$string['you'] = 'You';
