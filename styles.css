@@ -350,3 +350,49 @@
     max-height: 40rem;
     overflow-y: auto;
 }
+
+
+/* LMS0285 start */
+body.theme-snap.layout-course {
+    ul.section {
+        :is(li.modtype_task):has(.mod-task) {
+            border: none;
+            /* stylelint-disable-next-line declaration-no-important */
+            padding: 0 !important;
+            margin: 1em 0;
+
+            .asset-wrapper {
+                padding: 0;
+
+                .activityinstance {
+                    margin: 0;
+
+                    .snap-header-card {
+                        padding: 0;
+
+                        &:has(.snap-header-card-icons:empty):not(:has(.snap-asset-link)) {
+                            display: none;
+                        }
+
+                        .snap-header-container {
+                            padding: 0;
+                        }
+                    }
+
+                    .snap-assettype {
+                        display: none;
+                    }
+
+                    .contentwithoutlink {
+                        padding: 0;
+
+                        .no-overflow {
+                            padding: 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+/* LMS0285 end */

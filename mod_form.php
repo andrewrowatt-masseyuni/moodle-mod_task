@@ -82,6 +82,14 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->setDefault('teacherresponseismodelanswer', 0);
         $mform->addHelpButton('teacherresponseismodelanswer', 'ismodelanswer', 'mod_task');
 
+        $mform->addElement(
+            'selectyesno',
+            'embedoncoursepage',
+            get_string('embedoncoursepage', 'mod_task')
+        );
+        $mform->setDefault('embedoncoursepage', 0);
+        $mform->addHelpButton('embedoncoursepage', 'embedoncoursepage', 'mod_task');
+
         $this->standard_coursemodule_elements();
 
         $this->add_action_buttons();
