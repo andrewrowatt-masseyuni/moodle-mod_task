@@ -59,8 +59,20 @@
 }
 .mod-task-editor {
     background: #fff;
-    min-height: 6rem;
+    min-height: 4rem;
+
+    &.ql-container {
+        font-family: inherit;
+        font-size: inherit;
+
+        .ql-editor {
+            p {
+                margin-bottom: 1rem; /* Snap default */
+            }
+        }
+    }
 }
+
 .mod-task-anon-check {
     margin: 0.5rem 0;
 }
@@ -81,7 +93,7 @@
     margin-bottom: 0.75rem;
 }
 .mod-task-responses-count {
-    font-weight: 600;
+    font-weight: 500;
 }
 .mod-task-sort-btn {
     background: none;
@@ -89,10 +101,11 @@
     color: #6c757d;
     padding: 0.1rem 0.4rem;
     cursor: pointer;
+    border-bottom: 2px solid transparent;
 }
 .mod-task-sort-active {
-    color: #0f6cbf;
-    font-weight: 600;
+    font-weight: 500;
+    border-bottom: 2px solid #004b8d;
 }
 
 /* Posts. */
@@ -298,9 +311,9 @@
 .mod-task-response-panel {
     margin-bottom: 0.75rem;
 }
-.mod-task-response-panel-header {
+.mod-task-response-panel-header.card-header {
     padding: 0.35rem 0.75rem;
-    background: #f8f9fa;
+    background-color: transparent;
 }
 .mod-task-response-panel-title {
     font-weight: 600;

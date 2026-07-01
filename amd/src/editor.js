@@ -80,9 +80,10 @@ export const loadQuill = () => {
  * Create a Quill snow-theme editor inside the given mount element.
  *
  * @param {HTMLElement} mount the host element
+ * @param {string} placeholder the placeholder text shown in the empty editor
  * @return {*} a Quill instance
  */
-export const makeEditor = (mount) => {
+export const makeEditor = (mount, placeholder) => {
     const Quill = window.Quill;
     if (!Quill) {
         throw new Error('Quill is not loaded yet');
@@ -97,6 +98,6 @@ export const makeEditor = (mount) => {
                 ['clean'],
             ],
         },
-        placeholder: '',
+        placeholder,
     });
 };

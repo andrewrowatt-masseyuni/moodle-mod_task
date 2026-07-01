@@ -127,6 +127,7 @@ $string['teacherresponse_help'] = 'An optional response shown to each student on
 $string['teacherresponseheading'] = 'Teacher response';
 $string['totalreactions'] = 'reactions';
 $string['viewtask'] = 'View Task';
+$string['writeresponse'] = 'Write your response here...';
 $string['xnewresponses'] = '{$a} new responses';
 $string['you'] = 'You';
 $string['yourresponseheading'] = 'Your response';

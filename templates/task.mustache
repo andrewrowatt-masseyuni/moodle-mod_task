@@ -74,7 +74,7 @@
   {{/showdescription}}
 
   {{#showteacherresponse}}
-    <div class="mod-task-teacher-response mu-c4l c4l-mu-activities c4lv-mu-checkmark c4lv-mu-checkmark1 c4l-mu-color-green-variant" data-region="teacher-response">
+    <div class="mod-task-teacher-response mu-c4l c4l-mu-activities {{^teacherresponseismodelanswer}}c4lv-mu-comment c4lv-mu-comment1 c4l-mu-color-yellow-variant{{/teacherresponseismodelanswer}}{{#teacherresponseismodelanswer}}c4lv-mu-checkmark c4lv-mu-checkmark1 c4l-mu-color-green-variant{{/teacherresponseismodelanswer}}" data-region="teacher-response">
       <h2 class="h5 mod-task-teacher-response-header d-flex justify-content-between">
         <span class="mod-task-teacher-response-title">{{#str}}teacherresponseheading, mod_task{{/str}}</span>
         {{#teacherresponseismodelanswer}}
@@ -84,6 +84,12 @@
       <div class="mod-task-teacher-response-body">{{{teacherresponse}}}</div>
     </div>
   {{/showteacherresponse}}
+
+  {{^canseeresponses}}
+    <div class="mod-task-gating-notice mu-c4l c4l-mu-activities c4lv-mu-information c4lv-mu-information1 c4l-mu-color-yellow-variant" role="note" data-region="gating-notice">
+      {{#str}}mustrespondfirst, mod_task{{/str}}
+    </div>
+  {{/canseeresponses}}
 
   {{#canrespond}}
     <section class="mod-task-your-response" data-region="your-response">
@@ -140,11 +146,5 @@
         {{#str}}nootherresponses, mod_task{{/str}}
       </div>
     </section>
-  {{/canseeresponses}}
-
-  {{^canseeresponses}}
-    <div class="mod-task-gating-notice alert alert-info" role="note" data-region="gating-notice">
-      {{#str}}mustrespondfirst, mod_task{{/str}}
-    </div>
   {{/canseeresponses}}
 </div>

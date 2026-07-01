@@ -227,7 +227,8 @@ class TaskView {
             return;
         }
         await loadQuill();
-        this.composerEditor = makeEditor(expanded.querySelector('[data-region="editor"]'));
+        const placeholder = await getString('writeresponse', 'mod_task');
+        this.composerEditor = makeEditor(expanded.querySelector('[data-region="editor"]'), placeholder);
     }
 
     /**
@@ -574,6 +575,7 @@ class TaskView {
         const cancelStr = await getString('cancel', 'mod_task');
         const submitStr = await getString(kind === 'edit' ? 'save' : 'post', 'mod_task');
         const anonStr = await getString('respondanonymously', 'mod_task');
+        const placeholder = await getString('writeresponse', 'mod_task');
         const wrap = document.createElement('div');
         wrap.className = 'mod-task-inline-composer';
         wrap.innerHTML =
@@ -587,7 +589,7 @@ class TaskView {
             `<button type="button" class="btn btn-link" data-action="cancel-inline">${cancelStr}</button>` +
             `<button type="button" class="btn btn-primary" data-action="submit-inline">${submitStr}</button>` +
             '</div>';
-        const editor = makeEditor(wrap.querySelector('[data-region="inline-editor"]'));
+        const editor = makeEditor(wrap.querySelector('[data-region="inline-editor"]'), placeholder);
         return {container: wrap, editor};
     }
 
