@@ -32,6 +32,7 @@ final class manager_test extends \advanced_testcase {
     protected function setUp(): void {
         parent::setUp();
         $this->resetAfterTest();
+        manager::reset_caches();
     }
 
     /**
@@ -667,6 +668,50 @@ final class manager_test extends \advanced_testcase {
 
         // Only a teacher's reply overrides the mute; a peer's does not.
         $this->assertNotContains((int)$data['student1']->id, $this->message_recipient_ids($sink));
+    }
+
+    public function test_parse_tasktypes_config_skips_malformed_lines(): void {
+        $config = "explore|Explore|c4lv-mu-explore\n"
+            . "\n"
+            . "not-enough-parts\n"
+            . "has space|Bad shortname|css\n"
+            . "|Empty shortname|css\n"
+            . "watch|Watch|c4lv-mu-watch c4lv-mu-watch1";
+
+        $types = manager::parse_tasktypes_config($config);
+
+        $this->assertSame(['explore', 'watch'], array_keys($types));
+        $this->assertSame('Explore', $types['explore']['name']);
+        $this->assertSame('c4lv-mu-explore', $types['explore']['cssclasses']);
+        $this->assertSame('Watch', $types['watch']['name']);
+        $this->assertSame('c4lv-mu-watch c4lv-mu-watch1', $types['watch']['cssclasses']);
+    }
+
+    public function test_get_task_types_falls_back_to_default_when_unset(): void {
+        set_config('tasktypes', '', 'mod_task');
+
+        $options = manager::get_task_type_options();
+
+        $this->assertSame(['explore', 'watch', 'read', 'write'], array_keys($options));
+        $this->assertSame('explore', manager::default_task_type());
+    }
+
+    public function test_get_task_types_reads_site_config(): void {
+        set_config('tasktypes', "custom|Custom Type|my-css-class", 'mod_task');
+
+        $this->assertSame(['custom' => 'Custom Type'], manager::get_task_type_options());
+        $this->assertSame('my-css-class', manager::get_task_type_css('custom'));
+        $this->assertSame('', manager::get_task_type_css('explore'));
+        $this->assertSame('custom', manager::default_task_type());
+    }
+
+    public function test_view_exposes_tasktype_css_classes(): void {
+        $data = $this->setup_course_task(['tasktype' => 'watch']);
+        $this->setUser($data['student1']);
+
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+
+        $this->assertSame('c4lv-mu-watch c4lv-mu-watch1', $view['taskdescriptioncssclasses']);
     }
 
     /**

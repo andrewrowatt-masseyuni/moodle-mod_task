@@ -39,7 +39,7 @@ class backup_task_activity_structure_step extends backup_activity_structure_step
         $userinfo = $this->get_setting_value('userinfo');
 
         $task = new backup_nested_element('task', ['id'], [
-            'name', 'intro', 'introformat',
+            'name', 'tasktype', 'intro', 'introformat',
             'teacherresponse', 'teacherresponseformat', 'teacherresponseismodelanswer',
             'timecreated', 'timemodified',
         ]);

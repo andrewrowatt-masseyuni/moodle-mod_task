@@ -85,6 +85,9 @@ function task_add_instance($data, $mform = null) {
     $data->timecreated = time();
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
+    if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
+        $data->tasktype = \mod_task\manager::default_task_type();
+    }
 
     $data->id = $DB->insert_record('task', $data);
 
@@ -122,6 +125,9 @@ function task_update_instance($data, $mform = null) {
     $data->id = $data->instance;
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
+    if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
+        $data->tasktype = \mod_task\manager::default_task_type();
+    }
 
     if ($mform) {
         $context = context_module::instance($data->coursemodule);

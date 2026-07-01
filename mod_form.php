@@ -48,6 +48,16 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
+        $mform->addElement(
+            'select',
+            'tasktype',
+            get_string('tasktype', 'mod_task'),
+            \mod_task\manager::get_task_type_options()
+        );
+        $mform->setType('tasktype', PARAM_ALPHANUMEXT);
+        $mform->setDefault('tasktype', \mod_task\manager::default_task_type());
+        $mform->addHelpButton('tasktype', 'tasktype', 'mod_task');
+
         // The task the student responds to is the standard activity description,
         // relabelled. It is always visible to everyone who can view the activity.
         $this->standard_intro_elements(get_string('taskdescription', 'mod_task'));
@@ -118,6 +128,10 @@ class mod_task_mod_form extends moodleform_mod {
         $description = $data['introeditor']['text'] ?? '';
         if (trim(html_to_text($description)) === '' && stripos($description, '<img') === false) {
             $errors['introeditor'] = get_string('required');
+        }
+
+        if (!array_key_exists($data['tasktype'] ?? '', \mod_task\manager::get_task_type_options())) {
+            $errors['tasktype'] = get_string('required');
         }
 
         return $errors;

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/task/db" VERSION="2026070100" COMMENT="mod_task database tables"
+<XMLDB PATH="mod/task/db" VERSION="2026070101" COMMENT="mod_task database tables"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -9,6 +9,7 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
+        <FIELD NAME="tasktype" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="explore" SEQUENCE="false" COMMENT="Shortname of the configured Task type, controls the description panel's CSS classes"/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Rich-text task the student responds to (the activity description)"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="teacherresponse" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Optional rich-text teacher response, revealed after the student posts"/>

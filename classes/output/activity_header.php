@@ -45,16 +45,22 @@ class activity_header extends \core\output\activity_header {
         // The description is only present when the activity has an intro and the
         // page layout does not suppress it; only then is the panel meaningful.
         if (!empty($data['description'])) {
+            // The header's own page reference is used throughout (the global
+            // $PAGE->cm is not reliably populated at the point the header is
+            // exported).
+            $cm = $this->page->cm;
+            $cssclasses = (!empty($cm) && $cm->modname === 'task')
+                ? \mod_task\manager::get_task_type_css(\mod_task\manager::get_task($cm->instance)->tasktype)
+                : '';
+
             $description = $output->render_from_template('mod_task/description', [
                 'taskdescription' => $data['description'],
+                'taskdescriptioncssclasses' => $cssclasses,
             ]);
 
             // Participants get the per-user notification settings panel directly
-            // above the task description, mirroring the live Task shell. Use the
-            // header's own page reference (the global $PAGE->cm is not reliably
-            // populated at the point the header is exported).
+            // above the task description, mirroring the live Task shell.
             $notification = '';
-            $cm = $this->page->cm;
             if (!empty($cm) && $cm->modname === 'task') {
                 $context = \context_module::instance($cm->id);
                 if (has_capability('mod/task:respond', $context)) {

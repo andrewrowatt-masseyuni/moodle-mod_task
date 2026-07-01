@@ -51,10 +51,11 @@
         "own": true
     }
 }}
-<div class="card mod-task-response-panel {{#own}}mod-task-response-panel-own{{/own}}"
+<div class="card mod-task-response-panel {{#own}}mod-task-response-panel-own  mu-c4l c4l-mu-activities c4lv-mu-checkmark c4lv-mu-checkmark1 c4l-mu-color-green-variant{{/own}}"
   data-region="response-panel" data-postid="{{postid}}">
-  <div class="card-header mod-task-response-panel-header d-flex justify-content-between align-items-center"
+  {{#own}}<div class="card-header mod-task-response-panel-header d-flex justify-content-between align-items-center"
     id="mod-task-rph-{{uid}}">
+    <h2 class="h5 mod-task-section-heading">{{#str}}yourresponseheading, mod_task{{/str}}</h2>
     {{#title}}<span class="mod-task-response-panel-title">{{title}}</span>{{/title}}
     {{^title}}<span></span>{{/title}}
     <button class="btn btn-sm btn-link mod-task-response-toggle{{^expanded}} collapsed{{/expanded}}" type="button"
@@ -65,7 +66,7 @@
       <span class="mod-task-toggle-hide">{{hidelabel}}</span>
       <span class="mod-task-toggle-show">{{showlabel}}</span>
     </button>
-  </div>
+  </div>{{/own}}
   <div id="mod-task-rpc-{{uid}}" class="collapse{{#expanded}} show{{/expanded}}"
     aria-labelledby="mod-task-rph-{{uid}}">
     <div class="card-body mod-task-response-panel-body" data-region="panel-body"></div>

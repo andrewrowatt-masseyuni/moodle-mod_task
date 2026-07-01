@@ -119,5 +119,17 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026070100, 'task');
     }
 
+    if ($oldversion < 2026070102) {
+        // Per-activity "Task type" controls which CSS classes decorate the
+        // description panel (see the mod_task/tasktypes site setting).
+        $table = new xmldb_table('task');
+        $field = new xmldb_field('tasktype', XMLDB_TYPE_CHAR, '100', null, XMLDB_NOTNULL, null, 'explore', 'name');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026070102, 'task');
+    }
+
     return true;
 }
