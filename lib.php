@@ -85,6 +85,7 @@ function task_add_instance($data, $mform = null) {
     $data->timecreated = time();
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
+    $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
     if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
         $data->tasktype = \mod_task\manager::default_task_type();
     }
@@ -125,6 +126,7 @@ function task_update_instance($data, $mform = null) {
     $data->id = $data->instance;
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
+    $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
     if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
         $data->tasktype = \mod_task\manager::default_task_type();
     }
@@ -182,7 +184,7 @@ function task_delete_instance($id) {
 function task_get_coursemodule_info($coursemodule) {
     global $DB;
 
-    $fields = 'id, name, intro, introformat';
+    $fields = 'id, name, intro, introformat, embedoncoursepage';
     $task = $DB->get_record('task', ['id' => $coursemodule->instance], $fields);
     if (!$task) {
         return false;
@@ -193,23 +195,51 @@ function task_get_coursemodule_info($coursemodule) {
     if ($coursemodule->showdescription) {
         $info->content = format_module_intro('task', $task, $coursemodule->id, false);
     }
+    $info->customdata = ['embedoncoursepage' => (bool) $task->embedoncoursepage];
     return $info;
 }
 
 /**
- * Add the "x new responses" badge to the activity card on the course page.
+ * Suppress the Task's own view link when it should embed inline instead.
  *
- * Runs per user per request, so the count respects the answer-before-you-see
- * gating: students who have not yet responded see no count.
+ * Must run from the _cm_info_dynamic hook: cm_info::set_no_view_link() throws
+ * if called later, from _cm_info_view (see cm_info::check_not_view_only()).
+ *
+ * @param cm_info $cm the course module
+ */
+function task_cm_info_dynamic(cm_info $cm) {
+    if (!empty($cm->customdata['embedoncoursepage'])) {
+        $cm->set_no_view_link();
+    }
+}
+
+/**
+ * On the course page: either embed the Task's interactive widget inline
+ * (when "Embed on course page" is on), or add the "x new responses" badge.
+ *
+ * Runs per user per request, so the badge count respects the
+ * answer-before-you-see gating: students who have not yet responded see no
+ * count.
  *
  * @param cm_info $cm the course module
  */
 function task_cm_info_view(cm_info $cm) {
-    global $USER;
+    global $USER, $OUTPUT;
 
     if (!$cm->uservisible) {
         return;
     }
+
+    if (!empty($cm->customdata['embedoncoursepage'])) {
+        $context = context_module::instance($cm->id);
+        $cm->set_content(
+            \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id, true),
+            true
+        );
+        $cm->set_custom_cmlist_item(true);
+        return;
+    }
+
     if (get_config('mod_task', 'showcardbadge') === '0') {
         return;
     }
