@@ -28,20 +28,15 @@
     margin-bottom: 1rem;
 }
 .mod-task-teacher-response {
-    border: 1px solid #d1d5db;
-    border-left: 4px solid #28a745;
-    border-radius: 6px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1rem;
-    background: #f8f9fa;
+    .mod-task-teacher-response-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
 }
-.mod-task-teacher-response-header {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
+
 .mod-task-model-badge {
     font-weight: 600;
 }
@@ -278,16 +273,68 @@
 /* Notification settings panel (sits above the task description). */
 .mod-task-notification-settings {
     padding-bottom: 0.5rem;
-    
+
     .mod-task-notification-row {
         gap: 0.5rem 1rem;
     }
 }
 
-.mod-task-composer {
-    outline: 1px solid yellowgreen;
+/* Your response / Other responses sections. */
+.mod-task-section-heading {
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+.mod-task-your-response,
+.mod-task-other-responses {
+    margin-bottom: 1.25rem;
+}
+.mod-task-responses-header-main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    min-width: 0;
 }
 
-.mod-task-posts {
-    outline: 1px solid orange;
+/* Collapsible response panels (Your response and each other response). */
+.mod-task-response-panel {
+    margin-bottom: 0.75rem;
+}
+.mod-task-response-panel-header {
+    padding: 0.35rem 0.75rem;
+    background: #f8f9fa;
+}
+.mod-task-response-panel-title {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mod-task-response-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+.mod-task-toggle-icon {
+    margin-right: 0.3rem;
+    transition: transform 0.15s ease;
+}
+
+/* The .collapsed class Bootstrap toggles on the trigger swaps the hide/show
+   label and flips the chevron, so the standard collapse data API drives it. */
+.mod-task-response-toggle .mod-task-toggle-show {
+    display: none;
+}
+.mod-task-response-toggle.collapsed .mod-task-toggle-show {
+    display: inline;
+}
+.mod-task-response-toggle.collapsed .mod-task-toggle-hide {
+    display: none;
+}
+.mod-task-response-toggle.collapsed .mod-task-toggle-icon {
+    transform: rotate(180deg);
+}
+
+/* Other responses show four at a time; beyond that the area scrolls. */
+.mod-task-scrollable {
+    max-height: 40rem;
+    overflow-y: auto;
 }

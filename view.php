@@ -54,7 +54,6 @@ $PAGE->set_context($context);
 $PAGE->set_activity_record($task);
 
 echo $OUTPUT->header();
-// echo $OUTPUT->heading(format_string($task->name));
 
 // On the activity page the theme already renders the activity intro (the Task
 // description), so the live Task shell must not render it again. A {task:Name}

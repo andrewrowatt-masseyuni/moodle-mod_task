@@ -39,6 +39,10 @@ const SEL_ROOT = '[data-region="mod_task"]';
 const MAX_VISUAL_INDENT = 3;
 const LAZY_ROOT_MARGIN = '100px 0px';
 const EMPTY_HTML = ['', '<p><br></p>', '<p></p>'];
+// Other responses are revealed four at a time; the area becomes scrollable and
+// loads the next four as the viewer nears the bottom.
+const OTHER_BATCH = 4;
+const SCROLL_THRESHOLD = 80;
 
 const initialised = new WeakSet();
 let lazyObserver = null;
@@ -162,6 +166,12 @@ class TaskView {
         this.composerEditor = null;
         this.activeReply = null;
         this.activeEdit = null;
+        // A flat copy of every post, plus the progressive-render bookkeeping for
+        // the scrollable "Other responses" area.
+        this.allPosts = [];
+        this.otherTops = [];
+        this.otherRendered = 0;
+        this.loadingBatch = false;
     }
 
     /**
@@ -221,34 +231,136 @@ class TaskView {
     }
 
     /**
-     * Render the posts into [data-region="posts"], if visible.
+     * Render the viewer's own response and everyone else's responses into their
+     * respective panels.
      */
     async renderPosts() {
+        this.allPosts = (this.data.posts || []).map(p => ({...p}));
+        await this.renderYourResponse();
+        await this.renderOtherResponses();
+        tickTimeAgo();
+    }
+
+    /**
+     * Render the viewer's own top-level response(s) as collapsible panel(s) in
+     * the dedicated "Your response" area. Nothing is shown until the viewer has
+     * a response of their own; before that, the composer occupies the area.
+     */
+    async renderYourResponse() {
+        const region = this.root.querySelector('[data-region="your-response-posts"]');
+        if (!region) {
+            return;
+        }
+        region.innerHTML = '';
+        const ownTops = this.allPosts
+            .filter(p => p.parentid === 0 && p.ismine)
+            .sort((a, b) => b.timecreated - a.timecreated);
+        for (const top of ownTops) {
+            region.appendChild(await this.buildResponsePanel(top, true));
+        }
+    }
+
+    /**
+     * Render everyone else's top-level responses into the scrollable area, four
+     * at a time, and (re)wire the scroll handler that loads further batches.
+     */
+    async renderOtherResponses() {
         const container = this.root.querySelector('[data-region="posts"]');
         if (!container) {
             return;
         }
         container.innerHTML = '';
-
-        const posts = (this.data.posts || []).map(p => ({...p}));
-        const tops = posts.filter(p => p.parentid === 0);
-        tops.sort((a, b) => this.sortMode === 'newest'
-            ? b.timecreated - a.timecreated
-            : a.timecreated - b.timecreated);
-        for (const top of tops) {
-            await this.appendTree(container, top, 0, posts);
-        }
+        this.otherTops = this.allPosts
+            .filter(p => p.parentid === 0 && !p.ismine)
+            .sort((a, b) => this.sortMode === 'newest'
+                ? b.timecreated - a.timecreated
+                : a.timecreated - b.timecreated);
+        this.otherRendered = 0;
+        await this.renderNextOtherBatch();
+        this.bindScroll();
 
         const empty = this.root.querySelector('[data-region="empty"]');
         if (empty) {
-            empty.classList.toggle('d-none', this.data.postcount > 0);
+            empty.classList.toggle('d-none', this.otherTops.length > 0);
         }
         const countEl = this.root.querySelector('[data-region="post-count"]');
         if (countEl) {
-            const key = this.data.postcount === 1 ? 'oneresponse' : 'nresponses';
-            countEl.textContent = await getString(key, 'mod_task', this.data.postcount);
+            const n = this.otherTops.length;
+            countEl.textContent = await getString(n === 1 ? 'oneresponse' : 'nresponses', 'mod_task', n);
+        }
+    }
+
+    /**
+     * Append the next batch of other responses, and constrain the area to a
+     * scrollable window once more than one batch exists.
+     */
+    async renderNextOtherBatch() {
+        const container = this.root.querySelector('[data-region="posts"]');
+        if (this.loadingBatch || !container || this.otherRendered >= this.otherTops.length) {
+            return;
+        }
+        this.loadingBatch = true;
+        const batch = this.otherTops.slice(this.otherRendered, this.otherRendered + OTHER_BATCH);
+        for (const top of batch) {
+            container.appendChild(await this.buildResponsePanel(top, false));
+        }
+        this.otherRendered += batch.length;
+        this.loadingBatch = false;
+
+        const scroll = this.root.querySelector('[data-region="responses-scroll"]');
+        if (scroll) {
+            scroll.classList.toggle('mod-task-scrollable', this.otherTops.length > OTHER_BATCH);
         }
         tickTimeAgo();
+    }
+
+    /**
+     * Load the next batch when the scrollable area nears its bottom. Bound once
+     * per rendered area (the element is recreated on every full re-render).
+     */
+    bindScroll() {
+        const scroll = this.root.querySelector('[data-region="responses-scroll"]');
+        if (!scroll || scroll.dataset.scrollBound === '1') {
+            return;
+        }
+        scroll.dataset.scrollBound = '1';
+        scroll.addEventListener('scroll', () => {
+            if (this.otherRendered >= this.otherTops.length) {
+                return;
+            }
+            if (scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - SCROLL_THRESHOLD) {
+                this.renderNextOtherBatch();
+            }
+        });
+    }
+
+    /**
+     * Build a collapsible panel wrapping one top-level response and its replies.
+     *
+     * @param {object} top the top-level post object
+     * @param {boolean} own whether this is the viewer's own response
+     * @return {Promise<HTMLElement>} the panel element, with its tree rendered
+     */
+    async buildResponsePanel(top, own) {
+        const [hidelabel, showlabel] = await Promise.all([
+            getString(own ? 'hideyourresponse' : 'hideresponse', 'mod_task'),
+            getString(own ? 'showyourresponse' : 'showresponse', 'mod_task'),
+        ]);
+        const {html, js} = await Templates.renderForPromise('mod_task/response_panel', {
+            uid: `${this.data.taskid}_${top.id}`,
+            postid: top.id,
+            title: own ? '' : top.authorname,
+            hidelabel,
+            showlabel,
+            expanded: true,
+            own,
+        });
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        const node = tmp.firstElementChild;
+        await this.appendTree(node.querySelector('[data-region="panel-body"]'), top, 0, this.allPosts);
+        Templates.runTemplateJS(js);
+        return node;
     }
 
     /**
@@ -341,7 +453,10 @@ class TaskView {
         this.root.querySelectorAll('[data-action="sort"]').forEach(btn => {
             btn.classList.toggle('mod-task-sort-active', btn.dataset.sort === sort);
         });
-        await this.renderPosts();
+        // Sorting only reorders other responses; the viewer's own panel is left
+        // untouched so its expand/collapse state is preserved.
+        await this.renderOtherResponses();
+        tickTimeAgo();
     }
 
     async openReply(button) {
@@ -520,7 +635,7 @@ class TaskView {
                 args: {postid: postId, emoji},
             }])[0];
             const reactions = {counts: result.counts, userreactions: result.userreactions};
-            const post = (this.data.posts || []).find(p => p.id === postId);
+            const post = this.allPosts.find(p => p.id === postId);
             if (post) {
                 post.reactions = reactions;
             }

@@ -19,8 +19,18 @@
 
     The live Task shell rendered into the placeholder by mod_task/view.
 
+    Beneath the Task description and Teacher response, a dedicated "Your response"
+    panel either offers the composer (before the viewer has responded) or holds
+    the viewer's own response and replies as a collapsible panel. Below it, an
+    "Other responses" area lists everyone else's responses, each as its own
+    collapsible panel; mod_task/view shows four at a time and loads more as the
+    area is scrolled.
+
     Data attributes required for JS:
     * data-region="task-root"
+    * data-region="your-response-posts" (own response panels are injected here)
+    * data-region="responses-scroll" (the scrollable other-responses viewport)
+    * data-region="posts" (other response panels are injected here)
 
     Context variables required for this template: see mod_task\manager::get_task_view().
 
@@ -64,7 +74,7 @@
   {{/showdescription}}
 
   {{#showteacherresponse}}
-    <div class="mod-task-teacher-response" data-region="teacher-response">
+    <div class="mod-task-teacher-response mu-c4l c4l-mu-activities c4lv-mu-checkmark c4lv-mu-checkmark1 c4l-mu-color-green-variant" data-region="teacher-response">
       <h2 class="h5 mod-task-teacher-response-header d-flex justify-content-between">
         <span class="mod-task-teacher-response-title">{{#str}}teacherresponseheading, mod_task{{/str}}</span>
         {{#teacherresponseismodelanswer}}
@@ -75,52 +85,67 @@
     </div>
   {{/showteacherresponse}}
 
-  {{^canseeresponses}}
-    <div class="mod-task-gating-notice alert alert-info" role="note" data-region="gating-notice">
-      {{#str}}mustrespondfirst, mod_task{{/str}}
-    </div>
-  {{/canseeresponses}}
+  {{#canrespond}}
+    <section class="mod-task-your-response" data-region="your-response">
+      <h2 class="h5 mod-task-section-heading">{{#str}}yourresponseheading, mod_task{{/str}}</h2>
 
-  {{#canaddresponse}}
-    <div class="mod-task-composer" data-region="composer">
-      <div class="mod-task-composer-row">
-        <div class="mod-task-post-avatar" data-region="composer-avatar">
-          {{#currentuserprofileurl}}<a href="{{currentuserprofileurl}}">{{{currentuseravatar}}}</a>{{/currentuserprofileurl}}
-          {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
-        </div>
-        <div class="mod-task-composer-main">
-          <div class="mod-task-composer-expanded" data-region="composer-expanded">
-            <div class="mod-task-editor" data-region="editor"></div>
-            {{#cananonymous}}
-              <div class="form-check mod-task-anon-check">
-                <input class="form-check-input" type="checkbox" id="mod-task-anon-{{taskid}}" data-region="anonymous-toggle">
-                <label class="form-check-label" for="mod-task-anon-{{taskid}}">
-                  {{#str}}respondanonymously, mod_task{{/str}}
-                </label>
+      {{#canaddresponse}}
+        <div class="mod-task-composer" data-region="composer">
+          <div class="mod-task-composer-row">
+            <div class="mod-task-post-avatar" data-region="composer-avatar">
+              {{#currentuserprofileurl}}<a href="{{currentuserprofileurl}}">{{{currentuseravatar}}}</a>{{/currentuserprofileurl}}
+              {{^currentuserprofileurl}}{{{currentuseravatar}}}{{/currentuserprofileurl}}
+            </div>
+            <div class="mod-task-composer-main">
+              <div class="mod-task-composer-expanded" data-region="composer-expanded">
+                <div class="mod-task-editor" data-region="editor"></div>
+                {{#cananonymous}}
+                  <div class="form-check mod-task-anon-check">
+                    <input class="form-check-input" type="checkbox" id="mod-task-anon-{{taskid}}" data-region="anonymous-toggle">
+                    <label class="form-check-label" for="mod-task-anon-{{taskid}}">
+                      {{#str}}respondanonymously, mod_task{{/str}}
+                    </label>
+                  </div>
+                {{/cananonymous}}
+                <div class="mod-task-composer-actions">
+                  <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}post, mod_task{{/str}}</button>
+                </div>
               </div>
-            {{/cananonymous}}
-            <div class="mod-task-composer-actions">
-              <button type="button" class="btn btn-primary" data-action="submit-compose">{{#str}}post, mod_task{{/str}}</button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  {{/canaddresponse}}
+      {{/canaddresponse}}
+
+      <div class="mod-task-your-response-posts" data-region="your-response-posts"></div>
+    </section>
+  {{/canrespond}}
 
   {{#canseeresponses}}
-    <div class="mod-task-responses-header">
-      <span class="mod-task-responses-count" data-region="post-count"></span>
-      <div class="mod-task-sort">
-        <button type="button" class="mod-task-sort-btn mod-task-sort-active" data-action="sort" data-sort="newest">{{#str}}newest, mod_task{{/str}}</button>
-        <button type="button" class="mod-task-sort-btn" data-action="sort" data-sort="oldest">{{#str}}oldest, mod_task{{/str}}</button>
+    <section class="mod-task-other-responses" data-region="other-responses">
+      <div class="mod-task-responses-header">
+        <div class="mod-task-responses-header-main">
+          <h2 class="h5 mod-task-section-heading mb-0">{{#str}}otherresponsesheading, mod_task{{/str}}</h2>
+          <span class="mod-task-responses-count" data-region="post-count"></span>
+        </div>
+        <div class="mod-task-sort">
+          <button type="button" class="mod-task-sort-btn mod-task-sort-active" data-action="sort" data-sort="newest">{{#str}}newest, mod_task{{/str}}</button>
+          <button type="button" class="mod-task-sort-btn" data-action="sort" data-sort="oldest">{{#str}}oldest, mod_task{{/str}}</button>
+        </div>
       </div>
-    </div>
 
-    <div class="mod-task-posts" data-region="posts" aria-live="polite"></div>
+      <div class="mod-task-responses-scroll" data-region="responses-scroll">
+        <div class="mod-task-posts" data-region="posts" aria-live="polite"></div>
+      </div>
 
-    <div class="mod-task-empty {{#postcount}}d-none{{/postcount}}" data-region="empty">
-      {{#str}}befirsttorespond, mod_task{{/str}}
+      <div class="mod-task-empty d-none" data-region="empty">
+        {{#str}}nootherresponses, mod_task{{/str}}
+      </div>
+    </section>
+  {{/canseeresponses}}
+
+  {{^canseeresponses}}
+    <div class="mod-task-gating-notice alert alert-info" role="note" data-region="gating-notice">
+      {{#str}}mustrespondfirst, mod_task{{/str}}
     </div>
   {{/canseeresponses}}
 </div>

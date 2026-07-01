@@ -49,8 +49,8 @@ Feature: Task response gating
       | task1 | student1 | My own response |
     When I am on the "My Task" "task activity" page logged in as student1
     Then I should see "My own response"
-    But "Edit" "button" should not exist in the "[data-region=\"posts\"]" "css_element"
-    And "Delete" "button" should not exist in the "[data-region=\"posts\"]" "css_element"
+    But "Edit" "button" should not exist in the "[data-region=\"your-response-posts\"]" "css_element"
+    And "Delete" "button" should not exist in the "[data-region=\"your-response-posts\"]" "css_element"
 
   Scenario: A teacher can edit and delete responses
     Given the following "mod_task > responses" exist:

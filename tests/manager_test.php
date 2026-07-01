@@ -310,6 +310,36 @@ final class manager_test extends \advanced_testcase {
         $this->assertSame(fullname($data['student1']), $teacherview['authorname']);
     }
 
+    public function test_view_flags_the_viewers_own_posts(): void {
+        $data = $this->setup_course_task();
+
+        // A peer responds first, then the viewer posts their own response.
+        $peerpost = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+        ]);
+        $this->setUser($data['student1']);
+        $ownpost = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Mine.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+
+        // The ismine flag drives the split between the "Your response" panel and
+        // the "Other responses" area in the JS shell.
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertTrue($this->find_post($view, (int)$ownpost->id)['ismine']);
+        $this->assertFalse($this->find_post($view, (int)$peerpost->id)['ismine']);
+
+        // The same post is "not mine" to a different viewer.
+        $this->setUser($data['teacher']);
+        $teacherview = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertFalse($this->find_post($teacherview, (int)$ownpost->id)['ismine']);
+    }
+
     public function test_staff_cannot_post_anonymously(): void {
         $data = $this->setup_course_task();
         $this->setUser($data['teacher']);
