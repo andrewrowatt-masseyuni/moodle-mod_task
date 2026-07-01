@@ -380,7 +380,7 @@ class manager {
     ): array {
         global $DB, $USER;
 
-        $posts = $DB->get_records('task_post', ['taskid' => $taskid], 'timecreated ASC');
+        $posts = $DB->get_records('task_post', ['taskid' => $taskid, 'deleted' => 0], 'timecreated ASC');
         if (empty($posts)) {
             return [];
         }
@@ -445,7 +445,7 @@ class manager {
 
         $authorid = (int)$post->userid;
         $author = $users[$authorid] ?? $DB->get_record('user', ['id' => $authorid]);
-        $isown = ($authorid === (int)$USER->id);
+        $isown = ($authorid === (int)$USER->id) && !$post->deleted; /* Deleted posts are not owned by anyone */
         $isanon = (bool)$post->anonymous;
 
         $authorname = '';
