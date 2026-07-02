@@ -115,7 +115,15 @@ class helper {
             'cananonymous' => new external_value(PARAM_BOOL, 'Viewer may choose to respond anonymously'),
             'hasresponded' => new external_value(PARAM_BOOL, 'Viewer has posted a response'),
             'canseeresponses' => new external_value(PARAM_BOOL, 'Viewer may see responses and the teacher response'),
+            'showallresponsesheading' => new external_value(
+                PARAM_BOOL,
+                'Head the responses list "All responses" instead of "Other responses"'
+            ),
             'showteacherresponse' => new external_value(PARAM_BOOL, 'A teacher response is present and visible'),
+            'showteacherresponsenote' => new external_value(
+                PARAM_BOOL,
+                'Show the staff-only note that students see the teacher response only after responding'
+            ),
             'teacherresponse' => new external_value(PARAM_RAW, 'Formatted teacher response HTML'),
             'teacherresponseismodelanswer' => new external_value(PARAM_BOOL, 'Badge the teacher response as a model answer'),
             'emojis' => new external_multiple_structure(new external_single_structure([

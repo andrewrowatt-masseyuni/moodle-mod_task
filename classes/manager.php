@@ -322,7 +322,11 @@ class manager {
             'cananonymous' => $cananonymous,
             'hasresponded' => $hasresponded,
             'canseeresponses' => $cansee,
+            // Staff who cannot respond see everyone's responses, so "Other
+            // responses" would be misleading — for them it is "All responses".
+            'showallresponsesheading' => $canviewall && !$canrespond,
             'showteacherresponse' => false,
+            'showteacherresponsenote' => false,
             'teacherresponse' => '',
             'teacherresponseismodelanswer' => false,
             'emojis' => $emojis,
@@ -351,6 +355,9 @@ class manager {
             $payload['showteacherresponse'] = true;
             $payload['teacherresponse'] = $teacherresponse;
             $payload['teacherresponseismodelanswer'] = (bool)$task->teacherresponseismodelanswer;
+            // Staff see the teacher response without responding; remind them
+            // that students only see it after posting their own response.
+            $payload['showteacherresponsenote'] = $canviewall;
         }
 
         $payload['posts'] = self::build_posts($context, $taskid, $canviewall, $canmanage, $canrespond, $renderer);

@@ -54,7 +54,9 @@
         "cananonymous": true,
         "hasresponded": false,
         "canseeresponses": false,
+        "showallresponsesheading": false,
         "showteacherresponse": false,
+        "showteacherresponsenote": false,
         "teacherresponse": "",
         "teacherresponseismodelanswer": false,
         "postcount": 0,
@@ -75,12 +77,15 @@
 
   {{#showteacherresponse}}
     <div class="mod-task-teacher-response mu-c4l c4l-mu-activities {{^teacherresponseismodelanswer}}c4lv-mu-comment c4lv-mu-comment1 c4l-mu-color-yellow-variant{{/teacherresponseismodelanswer}}{{#teacherresponseismodelanswer}}c4lv-mu-checkmark c4lv-mu-checkmark1 c4l-mu-color-green-variant{{/teacherresponseismodelanswer}}" data-region="teacher-response">
-      <h2 class="h5 mod-task-teacher-response-header d-flex justify-content-between">
-        <span class="mod-task-teacher-response-title">{{#str}}teacherresponseheading, mod_task{{/str}}</span>
+      <div class="mod-task-teacher-response-header d-flex justify-content-between">
+        <h2 class="h5 mod-task-teacher-response-title mb-0">{{#str}}teacherresponseheading, mod_task{{/str}}</h2>
         {{#teacherresponseismodelanswer}}
           <span class="badge badge-success mod-task-model-badge">{{#str}}modelanswer, mod_task{{/str}}</span>
         {{/teacherresponseismodelanswer}}
-      </h2>
+      </div>
+      {{#showteacherresponsenote}}
+        <div class="mod-task-teacher-response-note small text-muted">{{#str}}teacherresponsestaffnote, mod_task{{/str}}</div>
+      {{/showteacherresponsenote}}
       <div class="mod-task-teacher-response-body">{{{teacherresponse}}}</div>
     </div>
   {{/showteacherresponse}}
@@ -129,7 +134,7 @@
     <section class="mod-task-other-responses" data-region="other-responses">
       <div class="mod-task-responses-header">
         <div class="mod-task-responses-header-main">
-          <h2 class="h5 mod-task-section-heading mb-0">{{#str}}otherresponsesheading, mod_task{{/str}}</h2>
+          <h2 class="h5 mod-task-section-heading mb-0">{{#showallresponsesheading}}{{#str}}allresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}{{^showallresponsesheading}}{{#str}}otherresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}</h2>
           <span class="mod-task-responses-count" data-region="post-count"></span>
         </div>
         <div class="mod-task-sort">

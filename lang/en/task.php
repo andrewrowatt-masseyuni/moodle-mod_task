@@ -24,6 +24,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+$string['allresponsesheading'] = 'All responses';
 $string['anonymous'] = 'Anonymous';
 $string['anonymousbadge'] = 'Anonymous';
 $string['befirsttorespond'] = 'Be the first to respond.';
@@ -127,6 +128,7 @@ $string['tasktypes_error_format'] = 'These lines are not valid "shortname|name|C
 $string['teacherresponse'] = 'Teacher response';
 $string['teacherresponse_help'] = 'An optional response shown to each student only after they have posted their own response. Leave empty if not required.';
 $string['teacherresponseheading'] = 'Teacher response';
+$string['teacherresponsestaffnote'] = 'Note: You automatically see this but it will not be visible to a student until they respond to the task.';
 $string['totalreactions'] = 'reactions';
 $string['viewtask'] = 'View Task';
 $string['writeresponse'] = 'Write your response here...';

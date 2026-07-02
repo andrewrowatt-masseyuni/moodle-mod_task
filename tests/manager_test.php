@@ -82,6 +82,8 @@ final class manager_test extends \advanced_testcase {
         $this->assertFalse($view['canseeresponses']);
         $this->assertFalse($view['hasresponded']);
         $this->assertFalse($view['showteacherresponse']);
+        $this->assertFalse($view['showteacherresponsenote']);
+        $this->assertFalse($view['showallresponsesheading']);
         $this->assertSame('', $view['teacherresponse']);
         $this->assertSame([], $view['posts']);
         $this->assertNotEmpty($view['taskdescription'], 'Task description is always visible');
@@ -108,6 +110,8 @@ final class manager_test extends \advanced_testcase {
         $this->assertTrue($view['canseeresponses']);
         $this->assertTrue($view['hasresponded']);
         $this->assertTrue($view['showteacherresponse']);
+        $this->assertFalse($view['showteacherresponsenote'], 'Students do not get the staff visibility note');
+        $this->assertFalse($view['showallresponsesheading'], 'Students keep the "Other responses" heading');
         $this->assertTrue($view['teacherresponseismodelanswer']);
         $this->assertStringContainsString('model answer', $view['teacherresponse']);
         $this->assertCount(2, $view['posts']);
@@ -126,6 +130,8 @@ final class manager_test extends \advanced_testcase {
         $this->assertTrue($view['canviewall']);
         $this->assertTrue($view['canseeresponses']);
         $this->assertTrue($view['showteacherresponse']);
+        $this->assertTrue($view['showteacherresponsenote'], 'Staff are told students cannot see this yet');
+        $this->assertTrue($view['showallresponsesheading'], 'Staff without mod/task:respond see "All responses"');
         $this->assertCount(1, $view['posts']);
     }
 
