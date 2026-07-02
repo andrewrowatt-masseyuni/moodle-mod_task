@@ -63,7 +63,7 @@ class activity_header extends \core\output\activity_header {
             $notification = '';
             if (!empty($cm) && $cm->modname === 'task') {
                 $context = \context_module::instance($cm->id);
-                if (has_capability('mod/task:respond', $context)) {
+                if (has_any_capability(['mod/task:respond', 'mod/task:reply'], $context)) {
                     $notification = $output->render_from_template('mod_task/notification_settings', [
                         'cmid' => (int)$cm->id,
                         'options' => \mod_task\manager::notification_options(

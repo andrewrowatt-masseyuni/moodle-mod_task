@@ -48,13 +48,36 @@ $capabilities = [
         ],
     ],
 
-    // Post a response or reply, and react to posts.
+    // Post a top-level response to a task.
     'mod/task:respond' => [
         'riskbitmask' => RISK_SPAM,
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,
         'archetypes' => [
             'student' => CAP_ALLOW,
+        ],
+    ],
+
+    // Post a reply to an existing response or reply.
+    'mod/task:reply' => [
+        'riskbitmask' => RISK_SPAM,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+        ],
+    ],
+
+    // React to a response or reply with an emoji.
+    'mod/task:react' => [
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => [
+            'student' => CAP_ALLOW,
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
         ],
     ],
 

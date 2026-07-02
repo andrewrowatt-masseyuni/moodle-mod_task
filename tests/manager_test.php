@@ -189,8 +189,16 @@ final class manager_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $reply2->id);
     }
 
-    public function test_staff_may_post_multiple_responses(): void {
+    public function test_staff_may_post_multiple_responses_when_granted_respond(): void {
+        global $DB;
+
         $data = $this->setup_course_task();
+
+        // Teachers cannot respond by default; grant it to verify that staff
+        // (who can view all responses) are not limited to one response.
+        $roleid = $DB->get_field('role', 'id', ['shortname' => 'editingteacher'], MUST_EXIST);
+        assign_capability('mod/task:respond', CAP_ALLOW, $roleid, $data['context']->id, true);
+
         $this->setUser($data['teacher']);
 
         $one = manager::create_post($data['context'], (int)$data['task']->id, 0, '<p>One.</p>', false, (int)$data['teacher']->id);
@@ -198,6 +206,86 @@ final class manager_test extends \advanced_testcase {
         $this->assertGreaterThan(0, $one->id);
         $this->assertGreaterThan(0, $two->id);
         $this->assertTrue(manager::get_task_view($data['context'], (int)$data['task']->id)['canaddresponse']);
+    }
+
+    public function test_teacher_cannot_post_a_response_by_default(): void {
+        $data = $this->setup_course_task();
+        $this->setUser($data['teacher']);
+
+        $this->expectException(\required_capability_exception::class);
+        manager::create_post($data['context'], (int)$data['task']->id, 0, '<p>One.</p>', false, (int)$data['teacher']->id);
+    }
+
+    public function test_teacher_can_reply_by_default(): void {
+        $data = $this->setup_course_task();
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        $this->setUser($data['teacher']);
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Teacher reply.</p>',
+            false,
+            (int)$data['teacher']->id
+        );
+        $this->assertGreaterThan(0, $reply->id);
+    }
+
+    public function test_reply_requires_reply_capability(): void {
+        global $DB;
+
+        $data = $this->setup_course_task();
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+        ]);
+
+        // A student stripped of mod/task:reply keeps mod/task:respond but may
+        // no longer post replies.
+        $roleid = $DB->get_field('role', 'id', ['shortname' => 'student'], MUST_EXIST);
+        assign_capability('mod/task:reply', CAP_PROHIBIT, $roleid, $data['context']->id, true);
+
+        $this->setUser($data['student1']);
+        $own = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Still allowed to respond.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $this->assertGreaterThan(0, $own->id);
+
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertFalse($this->find_post($view, (int)$response->id)['canreply']);
+
+        $this->expectException(\required_capability_exception::class);
+        manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Not allowed to reply.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+    }
+
+    public function test_canreact_follows_react_capability(): void {
+        global $DB;
+
+        $data = $this->setup_course_task();
+
+        $this->setUser($data['student1']);
+        $this->assertTrue(manager::get_task_view($data['context'], (int)$data['task']->id)['canreact']);
+
+        $roleid = $DB->get_field('role', 'id', ['shortname' => 'student'], MUST_EXIST);
+        assign_capability('mod/task:react', CAP_PROHIBIT, $roleid, $data['context']->id, true);
+
+        $this->assertFalse(manager::get_task_view($data['context'], (int)$data['task']->id)['canreact']);
     }
 
     public function test_students_cannot_edit_or_delete_their_post(): void {
@@ -234,6 +322,8 @@ final class manager_test extends \advanced_testcase {
     }
 
     public function test_staff_can_edit_and_delete_any_post(): void {
+        global $DB;
+
         $data = $this->setup_course_task();
         $post = $data['taskgen']->create_response([
             'taskid' => $data['task']->id,
@@ -246,10 +336,15 @@ final class manager_test extends \advanced_testcase {
         $this->assertTrue($row['candelete']);
 
         manager::edit_post($data['context'], (int)$post->id, '<p>Moderated.</p>', (int)$data['teacher']->id);
-        manager::delete_post($data['context'], (int)$post->id, (int)$data['teacher']->id);
-
         $row = $this->find_post(manager::get_task_view($data['context'], (int)$data['task']->id), (int)$post->id);
-        $this->assertTrue($row['deleted']);
+        $this->assertStringContainsString('Moderated.', $row['content']);
+        $this->assertTrue($row['edited']);
+
+        // A deleted post is soft-deleted in the database and no longer shown.
+        manager::delete_post($data['context'], (int)$post->id, (int)$data['teacher']->id);
+        $this->assertEquals(1, $DB->get_field('task_post', 'deleted', ['id' => $post->id]));
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertSame([], array_filter($view['posts'], fn($p) => $p['id'] === (int)$post->id));
     }
 
     public function test_anonymous_hidden_from_peers_but_visible_to_teacher(): void {
@@ -349,11 +444,17 @@ final class manager_test extends \advanced_testcase {
 
     public function test_staff_cannot_post_anonymously(): void {
         $data = $this->setup_course_task();
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        // Staff post replies under their own name even when they ask to be anonymous.
         $this->setUser($data['teacher']);
         $post = manager::create_post(
             $data['context'],
             (int)$data['task']->id,
-            0,
+            (int)$response->id,
             '<p>Staff.</p>',
             true,
             (int)$data['teacher']->id
@@ -363,19 +464,20 @@ final class manager_test extends \advanced_testcase {
 
     public function test_role_label_shown_for_staff_not_students(): void {
         $data = $this->setup_course_task();
-        $this->setUser($data['teacher']);
-        $teacherpost = manager::create_post(
-            $data['context'],
-            (int)$data['task']->id,
-            0,
-            '<p>Staff reply.</p>',
-            false,
-            (int)$data['teacher']->id
-        );
         $studentpost = $data['taskgen']->create_response([
             'taskid' => $data['task']->id,
             'userid' => $data['student1']->id,
         ]);
+
+        $this->setUser($data['teacher']);
+        $teacherpost = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$studentpost->id,
+            '<p>Staff reply.</p>',
+            false,
+            (int)$data['teacher']->id
+        );
 
         $view = manager::get_task_view($data['context'], (int)$data['task']->id);
         $this->assertNotEmpty($this->find_post($view, (int)$teacherpost->id)['authorrole']);

@@ -64,7 +64,11 @@ Settings live at *Site administration → Plugins → Activity modules → Task*
 
 - `mod/task:addinstance` — add a new Task to a course.
 - `mod/task:view` — view the Task activity.
-- `mod/task:respond` — post a response or reply, and react to posts.
+- `mod/task:respond` — post a top-level response (students by default).
+- `mod/task:reply` — reply to an existing response or reply (students and
+  teachers by default).
+- `mod/task:react` — react to a response or reply with an emoji (students and
+  teachers by default).
 - `mod/task:viewallresponses` — see every response (and the teacher response)
   without posting first, and see real names behind anonymous responses.
 - `mod/task:manageresponses` — edit or delete any response or reply.

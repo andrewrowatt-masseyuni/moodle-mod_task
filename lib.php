@@ -224,7 +224,7 @@ function task_cm_info_dynamic(cm_info $cm) {
  * @param cm_info $cm the course module
  */
 function task_cm_info_view(cm_info $cm) {
-    global $USER, $OUTPUT;
+    global $USER, $PAGE;
 
     if (!$cm->uservisible) {
         return;
@@ -232,8 +232,10 @@ function task_cm_info_view(cm_info $cm) {
 
     if (!empty($cm->customdata['embedoncoursepage'])) {
         $context = context_module::instance($cm->id);
+        // Use $PAGE->get_renderer() rather than $OUTPUT: early in the course-page
+        // lifecycle $OUTPUT can still be the bootstrap renderer, not a renderer_base.
         $cm->set_content(
-            \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id, true),
+            \mod_task\output\embed::placeholder($PAGE->get_renderer('core'), $cm->id, $context->id, true),
             true
         );
         $cm->set_custom_cmlist_item(true);

@@ -63,7 +63,7 @@ class react_post extends external_api {
         $cm = get_coursemodule_from_instance('task', (int)$post->taskid, 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
         self::validate_context($context);
-        require_capability('mod/task:respond', $context);
+        require_capability('mod/task:react', $context);
 
         // A student must be able to see responses (i.e. have responded) before reacting.
         if (!manager::can_see_responses($context, (int)$post->taskid)) {

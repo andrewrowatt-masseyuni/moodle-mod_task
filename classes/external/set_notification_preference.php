@@ -60,7 +60,10 @@ class set_notification_preference extends external_api {
         $cm = get_coursemodule_from_id('task', $params['cmid'], 0, false, MUST_EXIST);
         $context = \context_module::instance($cm->id);
         self::validate_context($context);
-        require_capability('mod/task:respond', $context);
+        // Anyone who can take part (respond or reply) may choose a preference.
+        if (!has_any_capability(['mod/task:respond', 'mod/task:reply'], $context)) {
+            throw new \required_capability_exception($context, 'mod/task:reply', 'nopermissions', '');
+        }
 
         manager::set_notification_preference((int)$cm->instance, (int)$USER->id, $params['preference']);
 

@@ -78,3 +78,22 @@ Feature: Task response gating
     Then I should see "Secretly from student two"
     And I should see "Student Two"
     And I should see "Anonymous"
+
+  Scenario: A teacher cannot post a response but can reply and react
+    Given the following "mod_task > responses" exist:
+      | task  | user     | content         |
+      | task1 | student1 | My own response |
+    When I am on the "My Task" "task activity" page logged in as teacher1
+    Then I should see "My own response"
+    But "Post" "button" should not exist
+    And "Reply" "button" should exist in the "[data-region=\"posts\"]" "css_element"
+    And "React to this post" "button" should exist in the "[data-region=\"posts\"]" "css_element"
+
+  Scenario: A student can reply and react to a peer's response after responding
+    Given the following "mod_task > responses" exist:
+      | task  | user     | content             |
+      | task1 | student2 | A peer response     |
+      | task1 | student1 | My own response     |
+    When I am on the "My Task" "task activity" page logged in as student1
+    Then "Reply" "button" should exist in the "[data-region=\"posts\"]" "css_element"
+    And "React to this post" "button" should exist in the "[data-region=\"posts\"]" "css_element"

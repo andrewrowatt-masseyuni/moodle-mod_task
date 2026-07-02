@@ -65,10 +65,11 @@ class send_notification extends \core\task\adhoc_task {
         // response thread this reply belongs to.
         $rootauthorid = $isreply ? manager::thread_root_author((int)$post->id) : 0;
 
-        // Candidate recipients are the enrolled participants. Staff (who see all
-        // responses) determine both the default preference and whether a
-        // recipient may see the real name behind an anonymous post.
-        $recipients = get_enrolled_users($context, 'mod/task:respond', 0, 'u.*', null, 0, 0, true);
+        // Candidate recipients are the enrolled participants: anyone who can
+        // respond or reply. Staff (who see all responses) determine both the
+        // default preference and whether a recipient may see the real name
+        // behind an anonymous post.
+        $recipients = get_enrolled_users($context, ['mod/task:respond', 'mod/task:reply'], 0, 'u.*', null, 0, 0, true);
         $staff = get_users_by_capability($context, 'mod/task:viewallresponses', 'u.id');
         $staffids = [];
         foreach ($staff as $staffuser) {

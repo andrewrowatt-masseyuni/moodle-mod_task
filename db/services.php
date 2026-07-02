@@ -46,7 +46,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'mod/task:respond',
+        'capabilities' => 'mod/task:reply',
     ],
     'mod_task_edit_post' => [
         'classname' => 'mod_task\external\edit_post',
@@ -54,7 +54,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'mod/task:respond,mod/task:manageresponses',
+        'capabilities' => 'mod/task:manageresponses',
     ],
     'mod_task_delete_post' => [
         'classname' => 'mod_task\external\delete_post',
@@ -62,7 +62,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'mod/task:respond,mod/task:manageresponses',
+        'capabilities' => 'mod/task:manageresponses',
     ],
     'mod_task_react_post' => [
         'classname' => 'mod_task\external\react_post',
@@ -70,7 +70,7 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'mod/task:respond',
+        'capabilities' => 'mod/task:react',
     ],
     'mod_task_mark_viewed' => [
         'classname' => 'mod_task\external\mark_viewed',
@@ -85,6 +85,6 @@ $functions = [
         'type' => 'write',
         'ajax' => true,
         'loginrequired' => true,
-        'capabilities' => 'mod/task:respond',
+        'capabilities' => 'mod/task:respond,mod/task:reply',
     ],
 ];

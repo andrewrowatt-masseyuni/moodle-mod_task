@@ -278,6 +278,8 @@ class manager {
         $renderer = $PAGE->get_renderer('core');
 
         $canrespond = has_capability('mod/task:respond', $context);
+        $canreply = has_capability('mod/task:reply', $context);
+        $canreact = has_capability('mod/task:react', $context);
         $canviewall = has_capability('mod/task:viewallresponses', $context);
         $canmanage = has_capability('mod/task:manageresponses', $context);
         $hasresponded = self::has_responded($taskid, (int)$USER->id);
@@ -289,7 +291,7 @@ class manager {
         $canaddresponse = $canrespond && ($canviewall || !$hasresponded);
 
         // Staff post under their own name; only students may choose to be anonymous.
-        $cananonymous = $canrespond && !$canviewall;
+        $cananonymous = ($canrespond || $canreply) && !$canviewall;
 
         $emojis = [];
         foreach (self::get_emoji_set() as $shortcode => $unicode) {
@@ -311,14 +313,14 @@ class manager {
             'canaddresponse' => $canaddresponse,
             // The per-user notification preference panel is offered to anyone who
             // can take part; it sits above the task description in the JS shell.
-            'shownotificationsettings' => $canrespond,
+            'shownotificationsettings' => $canrespond || $canreply,
             'notificationsettings' => [
                 'cmid' => (int)$cm->id,
                 'options' => self::notification_options($context, $taskid, (int)$USER->id),
             ],
             'canviewall' => $canviewall,
             'canmanage' => $canmanage,
-            'canreact' => $canrespond,
+            'canreact' => $canreact,
             'cananonymous' => $cananonymous,
             'hasresponded' => $hasresponded,
             'canseeresponses' => $cansee,
@@ -360,7 +362,7 @@ class manager {
             $payload['showteacherresponsenote'] = $canviewall;
         }
 
-        $payload['posts'] = self::build_posts($context, $taskid, $canviewall, $canmanage, $canrespond, $renderer);
+        $payload['posts'] = self::build_posts($context, $taskid, $canviewall, $canmanage, $canreply, $renderer);
         $payload['postcount'] = count($payload['posts']);
 
         return $payload;
@@ -373,7 +375,7 @@ class manager {
      * @param int $taskid the task instance id
      * @param bool $canviewall whether the viewer is staff
      * @param bool $canmanage whether the viewer can moderate
-     * @param bool $canrespond whether the viewer can reply
+     * @param bool $canreply whether the viewer can reply
      * @param \renderer_base $renderer the core renderer
      * @return array list of post view rows
      */
@@ -382,7 +384,7 @@ class manager {
         int $taskid,
         bool $canviewall,
         bool $canmanage,
-        bool $canrespond,
+        bool $canreply,
         \renderer_base $renderer
     ): array {
         global $DB, $USER;
@@ -416,7 +418,7 @@ class manager {
                 $reactions,
                 $canviewall,
                 $canmanage,
-                $canrespond,
+                $canreply,
                 $renderer
             );
         }
@@ -433,7 +435,7 @@ class manager {
      * @param array $reactions batched reaction data keyed by post id
      * @param bool $canviewall whether the viewer is staff (sees real names)
      * @param bool $canmanage whether the viewer can moderate
-     * @param bool $canrespond whether the viewer can reply
+     * @param bool $canreply whether the viewer can reply
      * @param \renderer_base $renderer the core renderer
      * @return array the post view row
      */
@@ -445,7 +447,7 @@ class manager {
         array $reactions,
         bool $canviewall,
         bool $canmanage,
-        bool $canrespond,
+        bool $canreply,
         \renderer_base $renderer
     ): array {
         global $USER, $DB;
@@ -514,7 +516,7 @@ class manager {
             ],
             'canedit' => $canedit,
             'candelete' => $candelete,
-            'canreply' => $canrespond && !$post->deleted,
+            'canreply' => $canreply && !$post->deleted,
         ];
     }
 
@@ -555,7 +557,9 @@ class manager {
     ): \stdClass {
         global $DB;
 
-        require_capability('mod/task:respond', $context);
+        // Responses and replies are separate permissions: students respond,
+        // students and staff reply.
+        require_capability($parentid > 0 ? 'mod/task:reply' : 'mod/task:respond', $context);
 
         $clean = self::sanitise($content);
         if (trim(html_to_text($clean)) === '' && stripos($clean, '<img') === false) {

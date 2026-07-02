@@ -54,13 +54,12 @@ Feature: Task "Your response" panel
     And I should not see "A peer's thoughts" in the "[data-region=\"your-response-posts\"]" "css_element"
     And I should not see "My own thoughts" in the "[data-region=\"posts\"]" "css_element"
 
-  Scenario: Each other response is its own collapsible panel
+  Scenario: Other responses sit in their own panels without a hide toggle
     Given the following "mod_task > responses" exist:
       | task  | user     | content           |
       | task1 | student2 | A peer's thoughts |
       | task1 | student1 | My own thoughts   |
     When I am on the "My Task" "task activity" page logged in as student1
-    Then I should see "A peer's thoughts"
-    And "Hide response" "button" should exist in the "[data-region=\"posts\"]" "css_element"
-    When I click on "Hide response" "button" in the "[data-region=\"posts\"]" "css_element"
-    Then I should not see "A peer's thoughts" in the "[data-region=\"posts\"]" "css_element"
+    Then I should see "A peer's thoughts" in the "[data-region=\"posts\"]" "css_element"
+    And "Hide your response" "button" should exist
+    But "Hide response" "button" should not exist in the "[data-region=\"posts\"]" "css_element"

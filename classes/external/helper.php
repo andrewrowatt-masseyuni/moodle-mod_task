@@ -105,7 +105,7 @@ class helper {
             'name' => new external_value(PARAM_TEXT, 'Task name'),
             'taskdescription' => new external_value(PARAM_RAW, 'Formatted task description HTML'),
             'taskdescriptioncssclasses' => new external_value(PARAM_RAW, 'CSS classes for the configured Task type'),
-            'canrespond' => new external_value(PARAM_BOOL, 'Viewer can post a response/reply'),
+            'canrespond' => new external_value(PARAM_BOOL, 'Viewer can post a top-level response'),
             'canaddresponse' => new external_value(PARAM_BOOL, 'Viewer may still post a top-level response'),
             'shownotificationsettings' => new external_value(PARAM_BOOL, 'Show the notification preference panel'),
             'notificationsettings' => self::notification_settings_structure(),
