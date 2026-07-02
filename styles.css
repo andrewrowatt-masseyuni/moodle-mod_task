@@ -351,6 +351,10 @@
     overflow-y: auto;
 }
 
+.mod-task-teacher-response-note {
+    border-top: 1px solid #0003;
+    color: #0007;
+}
 
 /* LMS0285 start */
 body.theme-snap.layout-course {

@@ -83,10 +83,11 @@
           <span class="badge badge-success mod-task-model-badge">{{#str}}modelanswer, mod_task{{/str}}</span>
         {{/teacherresponseismodelanswer}}
       </div>
-      {{#showteacherresponsenote}}
-        <div class="mod-task-teacher-response-note small text-muted">{{#str}}teacherresponsestaffnote, mod_task{{/str}}</div>
-      {{/showteacherresponsenote}}
       <div class="mod-task-teacher-response-body">{{{teacherresponse}}}</div>
+      {{#showteacherresponsenote}}
+      <div class="mod-task-teacher-response-note pt-2 mt-3 d-flex align-items-center small">
+        <i class="fa-solid fa-eye-slash mr-2"></i>{{#str}}teacherresponsestaffnote, mod_task{{/str}}</div>
+      {{/showteacherresponsenote}}
     </div>
   {{/showteacherresponse}}
 
