@@ -78,6 +78,9 @@ class react_post extends external_api {
             $result['action']
         )->trigger();
 
+        // Adding or removing a reaction can change the "make a reaction" completion condition.
+        manager::update_completion_state($cm, (int)$USER->id, $result['action'] === 'added');
+
         $reactions = manager::get_reactions([(int)$post->id], (int)$USER->id)[(int)$post->id];
         $counts = [];
         foreach ($reactions['counts'] as $shortcode => $count) {

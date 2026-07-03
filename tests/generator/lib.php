@@ -91,4 +91,47 @@ class mod_task_generator extends testing_module_generator {
 
         return $post;
     }
+
+    /**
+     * Create a reply to an existing post in a Task.
+     *
+     * @param array|stdClass $record fields: taskid, userid, parentid, content, anonymous
+     * @return stdClass the created post record
+     */
+    public function create_reply($record): stdClass {
+        $record = (array) $record;
+        if (empty($record['parentid'])) {
+            throw new coding_exception('parentid is required to create a Task reply');
+        }
+
+        return $this->create_response($record);
+    }
+
+    /**
+     * Create an emoji reaction on a Task post.
+     *
+     * @param array|stdClass $record fields: postid, userid, emoji
+     * @return stdClass the created reaction record
+     */
+    public function create_reaction($record): stdClass {
+        global $DB;
+
+        $record = (array) $record;
+        if (empty($record['postid'])) {
+            throw new coding_exception('postid is required to create a Task reaction');
+        }
+        if (empty($record['userid'])) {
+            throw new coding_exception('userid is required to create a Task reaction');
+        }
+
+        $reaction = (object) [
+            'postid' => $record['postid'],
+            'userid' => $record['userid'],
+            'emoji' => $record['emoji'] ?? 'thumbsup',
+            'timecreated' => time(),
+        ];
+        $reaction->id = $DB->insert_record('task_reaction', $reaction);
+
+        return $reaction;
+    }
 }

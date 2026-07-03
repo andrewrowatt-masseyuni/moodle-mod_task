@@ -36,6 +36,18 @@ class behat_mod_task_generator extends behat_generator_base {
                 'required' => ['task', 'user'],
                 'switchids' => ['task' => 'taskid', 'user' => 'userid'],
             ],
+            'replies' => [
+                'singular' => 'reply',
+                'datagenerator' => 'reply',
+                'required' => ['task', 'user', 'parent'],
+                'switchids' => ['task' => 'taskid', 'user' => 'userid', 'parent' => 'parentid'],
+            ],
+            'reactions' => [
+                'singular' => 'reaction',
+                'datagenerator' => 'reaction',
+                'required' => ['user', 'post'],
+                'switchids' => ['user' => 'userid', 'post' => 'postid'],
+            ],
         ];
     }
 
@@ -47,5 +59,32 @@ class behat_mod_task_generator extends behat_generator_base {
      */
     protected function get_task_id(string $idnumberorname): int {
         return $this->get_cm_by_activity_name('task', $idnumberorname)->instance;
+    }
+
+    /**
+     * Resolve a post id from its content, for the "parent" column of replies.
+     *
+     * @param string $content the exact content of the post
+     * @return int the post id
+     */
+    protected function get_parent_id(string $content): int {
+        return $this->get_post_id($content);
+    }
+
+    /**
+     * Resolve a post id from its content.
+     *
+     * @param string $content the exact content of the post
+     * @return int the post id
+     */
+    protected function get_post_id(string $content): int {
+        global $DB;
+
+        $select = $DB->sql_compare_text('content') . ' = ' . $DB->sql_compare_text(':content');
+        $posts = $DB->get_records_select('task_post', $select, ['content' => $content], 'id ASC', 'id');
+        if (!$posts) {
+            throw new Exception('No Task post found with content "' . $content . '"');
+        }
+        return (int) array_key_first($posts);
     }
 }

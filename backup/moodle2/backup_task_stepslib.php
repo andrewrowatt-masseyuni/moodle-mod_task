@@ -42,6 +42,7 @@ class backup_task_activity_structure_step extends backup_activity_structure_step
             'name', 'tasktype', 'intro', 'introformat',
             'teacherresponse', 'teacherresponseformat', 'teacherresponseismodelanswer',
             'embedoncoursepage',
+            'completionrespond', 'completionreply', 'completionreact',
             'timecreated', 'timemodified',
         ]);
 

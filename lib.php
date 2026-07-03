@@ -36,6 +36,8 @@ function task_supports($feature) {
             return true;
         case FEATURE_COMPLETION_TRACKS_VIEWS:
             return true;
+        case FEATURE_COMPLETION_HAS_RULES:
+            return true;
         case FEATURE_BACKUP_MOODLE2:
             return true;
         case FEATURE_GROUPS:
@@ -184,7 +186,8 @@ function task_delete_instance($id) {
 function task_get_coursemodule_info($coursemodule) {
     global $DB;
 
-    $fields = 'id, name, intro, introformat, embedoncoursepage';
+    $fields = 'id, name, intro, introformat, embedoncoursepage, '
+        . 'completionrespond, completionreply, completionreact';
     $task = $DB->get_record('task', ['id' => $coursemodule->instance], $fields);
     if (!$task) {
         return false;
@@ -196,7 +199,48 @@ function task_get_coursemodule_info($coursemodule) {
         $info->content = format_module_intro('task', $task, $coursemodule->id, false);
     }
     $info->customdata = ['embedoncoursepage' => (bool) $task->embedoncoursepage];
+
+    // Populate the custom completion rules as key => value pairs, but only if
+    // completion is enabled for this module.
+    if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC) {
+        $info->customdata['customcompletionrules']['completionrespond'] = $task->completionrespond;
+        $info->customdata['customcompletionrules']['completionreply'] = $task->completionreply;
+        $info->customdata['customcompletionrules']['completionreact'] = $task->completionreact;
+    }
+
     return $info;
+}
+
+/**
+ * Human-readable descriptions of the active custom completion rules,
+ * shown in the course editor and activity chooser.
+ *
+ * @param cm_info $cm the course module
+ * @return array of description strings, one per active rule
+ */
+function mod_task_get_completion_active_rule_descriptions($cm) {
+    if (empty($cm->customdata['customcompletionrules']) || $cm->completion != COMPLETION_TRACKING_AUTOMATIC) {
+        return [];
+    }
+
+    $descriptions = [];
+    foreach ($cm->customdata['customcompletionrules'] as $key => $val) {
+        if (empty($val)) {
+            continue;
+        }
+        switch ($key) {
+            case 'completionrespond':
+                $descriptions[] = get_string('completionresponddesc', 'task');
+                break;
+            case 'completionreply':
+                $descriptions[] = get_string('completionreplydesc', 'task');
+                break;
+            case 'completionreact':
+                $descriptions[] = get_string('completionreactdesc', 'task');
+                break;
+        }
+    }
+    return $descriptions;
 }
 
 /**

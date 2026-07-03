@@ -153,5 +153,23 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026070103, 'task');
     }
 
+    if ($oldversion < 2026070301) {
+        // Custom completion rules: require a response, a reply and/or a
+        // reaction before the activity is automatically marked complete.
+        $table = new xmldb_table('task');
+        $fields = [
+            new xmldb_field('completionrespond', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'embedoncoursepage'),
+            new xmldb_field('completionreply', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'completionrespond'),
+            new xmldb_field('completionreact', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'completionreply'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026070301, 'task');
+    }
+
     return true;
 }

@@ -124,6 +124,57 @@ class mod_task_mod_form extends moodleform_mod {
     }
 
     /**
+     * Add the custom completion rule checkboxes: respond, reply, react.
+     *
+     * @return string[] the names of the added elements
+     */
+    public function add_completion_rules() {
+        $mform = $this->_form;
+        $suffix = $this->get_suffix();
+
+        $elements = [];
+        foreach (['completionrespond', 'completionreply', 'completionreact'] as $rule) {
+            $element = $rule . $suffix;
+            $mform->addElement('checkbox', $element, '', get_string($rule, 'mod_task'));
+            $mform->setDefault($element, 0);
+            $elements[] = $element;
+        }
+        return $elements;
+    }
+
+    /**
+     * Whether at least one custom completion rule is enabled.
+     *
+     * @param array $data submitted form data
+     * @return bool
+     */
+    public function completion_rule_enabled($data) {
+        $suffix = $this->get_suffix();
+        return !empty($data['completionrespond' . $suffix])
+            || !empty($data['completionreply' . $suffix])
+            || !empty($data['completionreact' . $suffix]);
+    }
+
+    /**
+     * Persist 0 for any completion rule checkbox left unticked.
+     *
+     * @param stdClass $data submitted form data passed by reference
+     */
+    public function data_postprocessing($data) {
+        parent::data_postprocessing($data);
+        if (!empty($data->completionunlocked)) {
+            $suffix = $this->get_suffix();
+            $autocompletion = !empty($data->{'completion' . $suffix})
+                && $data->{'completion' . $suffix} == COMPLETION_TRACKING_AUTOMATIC;
+            foreach (['completionrespond', 'completionreply', 'completionreact'] as $rule) {
+                if (empty($data->{$rule . $suffix}) || !$autocompletion) {
+                    $data->{$rule . $suffix} = 0;
+                }
+            }
+        }
+    }
+
+    /**
      * Validate the form: the task description must not be empty.
      *
      * @param array $data submitted data

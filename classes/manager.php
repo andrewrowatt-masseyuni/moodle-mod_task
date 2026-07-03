@@ -216,6 +216,75 @@ class manager {
     }
 
     /**
+     * Whether the user has replied to another participant's post in this task.
+     *
+     * Replies under the user's own posts do not count: the point of the
+     * completion condition is engaging with someone else's contribution.
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @return bool
+     */
+    public static function has_replied(int $taskid, int $userid): bool {
+        global $DB;
+        return $DB->record_exists_sql(
+            'SELECT r.id
+               FROM {task_post} r
+               JOIN {task_post} parent ON parent.id = r.parentid
+              WHERE r.taskid = :taskid AND r.userid = :userid AND r.deleted = 0
+                    AND parent.userid <> :userid2',
+            ['taskid' => $taskid, 'userid' => $userid, 'userid2' => $userid]
+        );
+    }
+
+    /**
+     * Whether the user has reacted to another participant's post in this task.
+     *
+     * Reactions on the user's own posts do not count: the point of the
+     * completion condition is engaging with someone else's contribution.
+     * Reactions on soft-deleted posts still count: the user did react, and the
+     * reaction rows survive the post's soft-deletion.
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the user id
+     * @return bool
+     */
+    public static function has_reacted(int $taskid, int $userid): bool {
+        global $DB;
+        return $DB->record_exists_sql(
+            'SELECT r.id
+               FROM {task_reaction} r
+               JOIN {task_post} p ON p.id = r.postid
+              WHERE p.taskid = :taskid AND r.userid = :userid AND p.userid <> :userid2',
+            ['taskid' => $taskid, 'userid' => $userid, 'userid2' => $userid]
+        );
+    }
+
+    /**
+     * Re-evaluate a user's automatic completion state after their participation changed.
+     *
+     * @param \stdClass|\cm_info $cm the course module
+     * @param int $userid the user whose state may have changed
+     * @param bool $possiblycomplete true when the change may satisfy a condition,
+     *      false when it may undo one
+     */
+    public static function update_completion_state($cm, int $userid, bool $possiblycomplete): void {
+        global $CFG;
+        // Not in the always-loaded set, e.g. during AJAX web service calls.
+        require_once($CFG->libdir . '/completionlib.php');
+
+        $course = get_course($cm->course);
+        $completion = new \completion_info($course);
+        if ($completion->is_enabled($cm) == COMPLETION_TRACKING_AUTOMATIC) {
+            $completion->update_state(
+                $cm,
+                $possiblycomplete ? COMPLETION_COMPLETE : COMPLETION_INCOMPLETE,
+                $userid
+            );
+        }
+    }
+
+    /**
      * Whether the user may see the teacher response and other students' responses.
      *
      * Staff (mod/task:viewallresponses) always may; everyone else must post a
@@ -603,6 +672,9 @@ class manager {
             event\response_created::create_from_post($record, $cm, $context)->trigger();
         }
 
+        // A new post can satisfy the respond/reply completion conditions.
+        self::update_completion_state($cm, $userid, true);
+
         // Notify participants of the new post according to each recipient's own
         // notification preference (resolved when the adhoc task runs).
         $notification = new \mod_task\task\send_notification();
@@ -675,6 +747,10 @@ class manager {
 
         $cm = get_coursemodule_from_instance('task', (int)$post->taskid, 0, false, MUST_EXIST);
         event\post_deleted::create_from_post($post, $cm, $context)->trigger();
+
+        // Deleting the author's only response/reply can undo their respond/reply
+        // completion conditions.
+        self::update_completion_state($cm, (int)$post->userid, false);
     }
 
     /**
