@@ -57,6 +57,22 @@
     width: 100%;
     text-align: left;
 }
+
+.mod-task-composer-main {
+    border: 1px solid #cfd2d6;
+    border-radius: 8px;
+    padding: .5rem;
+    background: #fff;
+
+    .ql-toolbar.ql-snow {
+        border: none;
+    }
+
+    .ql-container.ql-snow {
+        border: none;
+    }
+}
+
 .mod-task-editor {
     background: #fff;
     min-height: 4rem;
@@ -81,6 +97,10 @@
     justify-content: flex-end;
     gap: 0.5rem;
     margin-top: 0.5rem;
+
+    label {
+        font-weight: 400;
+    }
 }
 
 /* Responses header and sort. */
@@ -121,6 +141,7 @@
 .mod-task-post .mod-task-post-avatar .userinitials {
     width: 40px;
     height: 40px;
+    max-width: 40px;
     /* stylelint-disable-next-line declaration-no-important */
     border-radius: 50% !important; /* Override default Snap theme styles */
     object-fit: cover;
@@ -310,7 +331,12 @@
 /* Collapsible response panels (Your response and each other response). */
 .mod-task-response-panel {
     margin-bottom: 0.75rem;
+
+    border: 1px solid #cfd2d6;
+    border-radius: 8px;
+    background: #fff;
 }
+
 .mod-task-response-panel-header.card-header {
     padding: 0.35rem 0.75rem;
     background-color: transparent;
