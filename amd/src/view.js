@@ -172,6 +172,10 @@ class TaskView {
         this.otherTops = [];
         this.otherRendered = 0;
         this.loadingBatch = false;
+        // Delegated click handling is bound once here; applyData() replaces the
+        // root's contents but not the root itself, so rebinding there would
+        // stack a duplicate listener on every dynamic re-render.
+        this.root.addEventListener('click', this.onClick.bind(this));
     }
 
     /**
@@ -212,7 +216,6 @@ class TaskView {
         await Templates.replaceNodeContents(this.root, html, js);
         await this.renderPosts();
         await this.initComposer();
-        this.root.addEventListener('click', this.onClick.bind(this));
     }
 
     /**
