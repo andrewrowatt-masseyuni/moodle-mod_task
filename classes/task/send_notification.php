@@ -102,6 +102,11 @@ class send_notification extends \core\task\adhoc_task {
             // Peers never see the real name behind an anonymous post; staff do.
             $authorname = ($isanonymous && !$isstaff) ? $anonname : $realname;
             $body = get_string($bodykey, 'mod_task', (object) ['author' => $authorname, 'taskname' => $taskname]);
+            // HTML variant: the task name is a direct link to the Task module.
+            $bodyhtml = get_string($bodykey, 'mod_task', (object) [
+                'author' => s($authorname),
+                'taskname' => \html_writer::link($url, $taskname),
+            ]);
 
             $message = new \core\message\message();
             $message->component = 'mod_task';
@@ -112,7 +117,7 @@ class send_notification extends \core\task\adhoc_task {
             $message->subject = $subject;
             $message->fullmessage = $body;
             $message->fullmessageformat = FORMAT_PLAIN;
-            $message->fullmessagehtml = \html_writer::tag('p', s($body));
+            $message->fullmessagehtml = \html_writer::tag('p', $bodyhtml);
             $message->smallmessage = $body;
             $message->notification = 1;
             $message->contexturl = $url->out(false);
