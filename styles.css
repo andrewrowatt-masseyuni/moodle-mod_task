@@ -58,7 +58,8 @@
     text-align: left;
 }
 
-.mod-task-composer-main {
+.mod-task-composer-main,
+.mod-task-inline-composer {
     border: 1px solid #cfd2d6;
     border-radius: 8px;
     padding: .5rem;
@@ -187,6 +188,7 @@
     padding: 0.1rem 0.2rem;
     cursor: pointer;
     font-size: 0.85rem;
+    margin-top: 0.25rem;
 }
 .mod-task-action:hover {
     color: #0f6cbf;
@@ -207,7 +209,6 @@
 .mod-task-reactions-bar {
     align-items: center;
     gap: 0.4rem;
-    margin-top: 0.25rem;
 }
 .mod-task-reactions-picker-wrapper {
     position: relative;
