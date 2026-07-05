@@ -171,5 +171,27 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026070301, 'task');
     }
 
+    if ($oldversion < 2026070500) {
+        // Per-activity "Anonymous responses and replies" controls whether
+        // students are offered the option to post anonymously to peers.
+        // Defaults to enabled, which was the previous fixed behaviour.
+        $table = new xmldb_table('task');
+        $field = new xmldb_field(
+            'anonymousposts',
+            XMLDB_TYPE_INTEGER,
+            '1',
+            null,
+            XMLDB_NOTNULL,
+            null,
+            '1',
+            'embedoncoursepage'
+        );
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_mod_savepoint(true, 2026070500, 'task');
+    }
+
     return true;
 }

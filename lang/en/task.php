@@ -27,6 +27,8 @@ defined('MOODLE_INTERNAL') || die();
 $string['allresponsesheading'] = 'All responses';
 $string['anonymous'] = 'Anonymous';
 $string['anonymousbadge'] = 'Anonymous';
+$string['anonymousposts'] = 'Anonymous responses and replies';
+$string['anonymousposts_help'] = 'If enabled, student posts are displayed as anonymous to other students. Teachers always see full names.';
 $string['befirsttorespond'] = 'Be the first to respond.';
 $string['cancel'] = 'Cancel';
 $string['completiondetail:react'] = 'Make a reaction';

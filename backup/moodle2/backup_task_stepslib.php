@@ -41,7 +41,7 @@ class backup_task_activity_structure_step extends backup_activity_structure_step
         $task = new backup_nested_element('task', ['id'], [
             'name', 'tasktype', 'intro', 'introformat',
             'teacherresponse', 'teacherresponseformat', 'teacherresponseismodelanswer',
-            'embedoncoursepage',
+            'embedoncoursepage', 'anonymousposts',
             'completionrespond', 'completionreply', 'completionreact',
             'timecreated', 'timemodified',
         ]);

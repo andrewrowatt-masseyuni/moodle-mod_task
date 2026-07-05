@@ -88,6 +88,7 @@ function task_add_instance($data, $mform = null) {
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
     $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
+    $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
     if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
         $data->tasktype = \mod_task\manager::default_task_type();
     }
@@ -129,6 +130,7 @@ function task_update_instance($data, $mform = null) {
     $data->timemodified = time();
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
     $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
+    $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
     if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
         $data->tasktype = \mod_task\manager::default_task_type();
     }

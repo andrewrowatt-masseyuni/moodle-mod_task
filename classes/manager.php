@@ -359,8 +359,9 @@ class manager {
         // who can view all responses, are not limited.
         $canaddresponse = $canrespond && ($canviewall || !$hasresponded);
 
-        // Staff post under their own name; only students may choose to be anonymous.
-        $cananonymous = ($canrespond || $canreply) && !$canviewall;
+        // Staff post under their own name; only students may choose to be
+        // anonymous, and only where the activity allows anonymous posts.
+        $cananonymous = ($canrespond || $canreply) && !$canviewall && !empty($task->anonymousposts);
 
         $emojis = [];
         foreach (self::get_emoji_set() as $shortcode => $unicode) {
@@ -648,8 +649,10 @@ class manager {
             throw new \moodle_exception('error_alreadyresponded', 'mod_task');
         }
 
-        // Only students (who cannot view all responses) may post anonymously.
-        $anonymous = ($anonymous && !$canviewall) ? 1 : 0;
+        // Only students (who cannot view all responses) may post anonymously,
+        // and only where the activity allows anonymous posts.
+        $allowanonymous = !empty(self::get_task($taskid)->anonymousposts);
+        $anonymous = ($anonymous && !$canviewall && $allowanonymous) ? 1 : 0;
 
         $now = time();
         $record = (object) [

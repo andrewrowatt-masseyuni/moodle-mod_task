@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/task/db" VERSION="2026070301" COMMENT="mod_task database tables"
+<XMLDB PATH="mod/task/db" VERSION="2026070500" COMMENT="mod_task database tables"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -16,6 +16,7 @@
         <FIELD NAME="teacherresponseformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false"/>
         <FIELD NAME="teacherresponseismodelanswer" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = badge the teacher response as a model answer"/>
         <FIELD NAME="embedoncoursepage" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = show the Task's embedded widget directly on the course page instead of a linked activity card"/>
+        <FIELD NAME="anonymousposts" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = students may choose to post responses and replies anonymously to peers"/>
         <FIELD NAME="completionrespond" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must add a response to complete"/>
         <FIELD NAME="completionreply" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must post a reply to complete"/>
         <FIELD NAME="completionreact" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must make a reaction to complete"/>

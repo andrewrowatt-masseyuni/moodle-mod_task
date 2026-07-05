@@ -1,0 +1,57 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template mod_task/inline_composer
+
+    The inline composer used for replying to a post or editing an existing
+    one. Rendered from JS only (mod_task/view); the Quill editor is attached
+    to [data-region="inline-editor"] after the template is inserted.
+
+    Data attributes required for JS:
+    * data-region="inline-editor" (where the editor is attached)
+    * data-region="anonymous-toggle" (when withanon is set)
+    * data-action="cancel-inline"
+    * data-action="submit-inline"
+
+    Context variables required for this template:
+    * isedit (bool) true when editing a post (submit reads "Save"), false when replying ("Post")
+    * withanon (bool) whether to show the "Respond anonymously" checkbox
+
+    Example context (json):
+    {
+        "isedit": false,
+        "withanon": true
+    }
+}}
+<div class="mod-task-inline-composer">
+    <div class="mod-task-editor" data-region="inline-editor"></div>
+    <div class="mod-task-composer-actions">
+        {{#withanon}}
+            <div class="form-check mod-task-anon-check">
+                <input class="form-check-input" type="checkbox" id="mod-task-inline-anon-{{uniqid}}"
+                    data-region="anonymous-toggle">
+                <label class="form-check-label" for="mod-task-inline-anon-{{uniqid}}">
+                    {{#str}}respondanonymously, mod_task{{/str}}
+                </label>
+            </div>
+        {{/withanon}}
+        <button type="button" class="btn btn-link" data-action="cancel-inline">{{#str}}cancel, mod_task{{/str}}</button>
+        <button type="button" class="btn btn-primary" data-action="submit-inline">
+            {{#isedit}}{{#str}}save, mod_task{{/str}}{{/isedit}}{{^isedit}}{{#str}}post, mod_task{{/str}}{{/isedit}}
+        </button>
+    </div>
+</div>

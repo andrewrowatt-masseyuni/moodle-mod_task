@@ -48,6 +48,7 @@ class mod_task_generator extends testing_module_generator {
             'teacherresponse' => '',
             'teacherresponseformat' => FORMAT_HTML,
             'teacherresponseismodelanswer' => 0,
+            'anonymousposts' => 1,
         ];
         foreach ($defaults as $field => $value) {
             if (!isset($record->$field)) {

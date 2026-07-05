@@ -575,25 +575,16 @@ class TaskView {
      * @return {Promise<{container: HTMLElement, editor: object}>}
      */
     async buildInlineComposer(kind, withAnon) {
-        const cancelStr = await getString('cancel', 'mod_task');
-        const submitStr = await getString(kind === 'edit' ? 'save' : 'post', 'mod_task');
-        const anonStr = await getString('respondanonymously', 'mod_task');
         const placeholder = await getString('writeresponse', 'mod_task');
-        const wrap = document.createElement('div');
-        wrap.className = 'mod-task-inline-composer';
-        wrap.innerHTML =
-            '<div class="mod-task-editor" data-region="inline-editor"></div>' +
-            (withAnon
-                ? '<div class="form-check mod-task-anon-check">' +
-                  '<input class="form-check-input" type="checkbox" data-region="anonymous-toggle">' +
-                  `<label class="form-check-label">${anonStr}</label></div>`
-                : '') +
-            '<div class="mod-task-composer-actions">' +
-            `<button type="button" class="btn btn-link" data-action="cancel-inline">${cancelStr}</button>` +
-            `<button type="button" class="btn btn-primary" data-action="submit-inline">${submitStr}</button>` +
-            '</div>';
-        const editor = makeEditor(wrap.querySelector('[data-region="inline-editor"]'), placeholder);
-        return {container: wrap, editor};
+        const {html, js} = await Templates.renderForPromise('mod_task/inline_composer', {
+            isedit: kind === 'edit',
+            withanon: withAnon,
+        });
+        const holder = document.createElement('div');
+        await Templates.replaceNodeContents(holder, html, js);
+        const container = holder.firstElementChild;
+        const editor = makeEditor(container.querySelector('[data-region="inline-editor"]'), placeholder);
+        return {container, editor};
     }
 
     async confirmDelete(button) {

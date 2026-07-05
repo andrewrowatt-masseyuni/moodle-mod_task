@@ -462,6 +462,34 @@ final class manager_test extends \advanced_testcase {
         $this->assertEquals(0, $post->anonymous);
     }
 
+    public function test_anonymous_posts_disabled(): void {
+        $data = $this->setup_course_task(['anonymousposts' => 0]);
+
+        // The anonymous option is withheld from the composer UI.
+        $this->setUser($data['student1']);
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertFalse($view['cananonymous']);
+
+        // A forged anonymous request is stored as a named post.
+        $post = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Named.</p>',
+            true,
+            (int)$data['student1']->id
+        );
+        $this->assertEquals(0, $post->anonymous);
+    }
+
+    public function test_anonymous_posts_enabled_by_default(): void {
+        $data = $this->setup_course_task();
+
+        $this->setUser($data['student1']);
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        $this->assertTrue($view['cananonymous']);
+    }
+
     public function test_role_label_shown_for_staff_not_students(): void {
         $data = $this->setup_course_task();
         $studentpost = $data['taskgen']->create_response([

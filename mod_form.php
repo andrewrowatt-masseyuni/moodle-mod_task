@@ -84,6 +84,14 @@ class mod_task_mod_form extends moodleform_mod {
 
         $mform->addElement(
             'selectyesno',
+            'anonymousposts',
+            get_string('anonymousposts', 'mod_task')
+        );
+        $mform->setDefault('anonymousposts', 0);
+        $mform->addHelpButton('anonymousposts', 'anonymousposts', 'mod_task');
+
+        $mform->addElement(
+            'selectyesno',
             'embedoncoursepage',
             get_string('embedoncoursepage', 'mod_task')
         );
