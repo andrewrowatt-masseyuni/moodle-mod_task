@@ -595,7 +595,7 @@ class TaskView {
         const postId = parseInt(postEl.dataset.postid, 10);
         try {
             await Notification.deleteCancelPromise(
-                await getString('delete', 'mod_task'),
+                await getString('delete', 'core'),
                 await getString('deleteconfirm', 'mod_task')
             );
         } catch {

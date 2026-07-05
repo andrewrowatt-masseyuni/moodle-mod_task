@@ -339,7 +339,9 @@ function task_pluginfile($course, $cm, $context, $filearea, $args, $forcedownloa
         return false;
     }
 
-    $itemid = (int)array_shift($args);
+    // Intro URLs are rewritten with a null itemid (see format_module_intro()),
+    // so they carry no itemid path segment; teacherresponse URLs carry /0/.
+    $itemid = ($filearea === 'intro') ? 0 : (int)array_shift($args);
     $filename = array_pop($args);
     $filepath = $args ? '/' . implode('/', $args) . '/' : '/';
 

@@ -48,10 +48,14 @@ class provider implements
     public static function get_metadata(collection $collection): collection {
         $collection->add_database_table('task_post', [
             'taskid' => 'privacy:metadata:task_post:taskid',
+            'parentid' => 'privacy:metadata:task_post:parentid',
             'userid' => 'privacy:metadata:task_post:userid',
             'content' => 'privacy:metadata:task_post:content',
             'anonymous' => 'privacy:metadata:task_post:anonymous',
+            'edited' => 'privacy:metadata:task_post:edited',
+            'deleted' => 'privacy:metadata:task_post:deleted',
             'timecreated' => 'privacy:metadata:task_post:timecreated',
+            'timemodified' => 'privacy:metadata:task_post:timemodified',
         ], 'privacy:metadata:task_post');
 
         $collection->add_database_table('task_reaction', [
@@ -71,6 +75,7 @@ class provider implements
             'taskid' => 'privacy:metadata:task_notifypref:taskid',
             'userid' => 'privacy:metadata:task_notifypref:userid',
             'preference' => 'privacy:metadata:task_notifypref:preference',
+            'timemodified' => 'privacy:metadata:task_notifypref:timemodified',
         ], 'privacy:metadata:task_notifypref');
 
         return $collection;
@@ -85,25 +90,45 @@ class provider implements
     public static function get_contexts_for_userid(int $userid): contextlist {
         $contextlist = new contextlist();
 
+        $params = [
+            'modlevel' => CONTEXT_MODULE,
+            'modname' => 'task',
+            'userid' => $userid,
+        ];
+
+        // One targeted query per data source, matching get_users_in_context():
+        // a single combined query would cross-join every post in every task.
         $sql = "SELECT ctx.id
                   FROM {context} ctx
                   JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modlevel
                   JOIN {modules} m ON m.id = cm.module AND m.name = :modname
-                  JOIN {task} t ON t.id = cm.instance
-             LEFT JOIN {task_post} p ON p.taskid = t.id AND p.userid = :puserid
-             LEFT JOIN {task_lastviewed} lv ON lv.taskid = t.id AND lv.userid = :lvuserid
-             LEFT JOIN {task_notifypref} np ON np.taskid = t.id AND np.userid = :npuserid
-             LEFT JOIN {task_post} rp ON rp.taskid = t.id
-             LEFT JOIN {task_reaction} r ON r.postid = rp.id AND r.userid = :ruserid
-                 WHERE p.id IS NOT NULL OR lv.id IS NOT NULL OR np.id IS NOT NULL OR r.id IS NOT NULL";
-        $params = [
-            'modlevel' => CONTEXT_MODULE,
-            'modname' => 'task',
-            'puserid' => $userid,
-            'lvuserid' => $userid,
-            'npuserid' => $userid,
-            'ruserid' => $userid,
-        ];
+                  JOIN {task_post} p ON p.taskid = cm.instance
+                 WHERE p.userid = :userid";
+        $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modlevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {task_lastviewed} lv ON lv.taskid = cm.instance
+                 WHERE lv.userid = :userid";
+        $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modlevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {task_notifypref} np ON np.taskid = cm.instance
+                 WHERE np.userid = :userid";
+        $contextlist->add_from_sql($sql, $params);
+
+        $sql = "SELECT ctx.id
+                  FROM {context} ctx
+                  JOIN {course_modules} cm ON cm.id = ctx.instanceid AND ctx.contextlevel = :modlevel
+                  JOIN {modules} m ON m.id = cm.module AND m.name = :modname
+                  JOIN {task_post} p ON p.taskid = cm.instance
+                  JOIN {task_reaction} r ON r.postid = p.id
+                 WHERE r.userid = :userid";
         $contextlist->add_from_sql($sql, $params);
 
         return $contextlist;

@@ -74,7 +74,7 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->setType('teacherresponse_editor', PARAM_RAW);
         $mform->addHelpButton('teacherresponse_editor', 'teacherresponse', 'mod_task');
 
-        $modelanswer = $mform->addElement(
+        $mform->addElement(
             'selectyesno',
             'teacherresponseismodelanswer',
             get_string('ismodelanswer', 'mod_task')
@@ -87,7 +87,7 @@ class mod_task_mod_form extends moodleform_mod {
             'anonymousposts',
             get_string('anonymousposts', 'mod_task')
         );
-        $mform->setDefault('anonymousposts', 0);
+        $mform->setDefault('anonymousposts', 1);
         $mform->addHelpButton('anonymousposts', 'anonymousposts', 'mod_task');
 
         $mform->addElement(

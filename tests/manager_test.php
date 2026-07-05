@@ -788,6 +788,12 @@ final class manager_test extends \advanced_testcase {
         ]);
         manager::set_notification_preference((int)$data['task']->id, (int)$data['student1']->id, manager::NOTIFY_NONE);
 
+        // Student2 must have a response of their own before they may reply.
+        $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+        ]);
+
         $this->setUser($data['student2']);
         $sink = $this->redirectMessages();
 
@@ -804,6 +810,29 @@ final class manager_test extends \advanced_testcase {
 
         // Only a teacher's reply overrides the mute; a peer's does not.
         $this->assertNotContains((int)$data['student1']->id, $this->message_recipient_ids($sink));
+    }
+
+    public function test_reply_requires_own_response_first(): void {
+        $data = $this->setup_course_task();
+
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        // Student2 has not responded, so the answer-before-you-see gate blocks
+        // their reply even though they hold mod/task:reply.
+        $this->setUser($data['student2']);
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('error_cannotrespondyet', 'mod_task'));
+        manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Premature reply.</p>',
+            false,
+            (int)$data['student2']->id
+        );
     }
 
     public function test_parse_tasktypes_config_skips_malformed_lines(): void {

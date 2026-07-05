@@ -328,7 +328,10 @@ class manager {
         if ($text === '') {
             return '';
         }
-        $text = file_rewrite_pluginfile_urls($text, 'pluginfile.php', $context->id, 'mod_task', $filearea, 0);
+        // The intro is rewritten with a null itemid to match format_module_intro(),
+        // so every intro file URL has the same shape wherever it is rendered.
+        $itemid = ($filearea === 'intro') ? null : 0;
+        $text = file_rewrite_pluginfile_urls($text, 'pluginfile.php', $context->id, 'mod_task', $filearea, $itemid);
         return format_text($text, $format, ['context' => $context]);
     }
 
@@ -641,6 +644,11 @@ class manager {
         $canviewall = has_capability('mod/task:viewallresponses', $context, $userid);
 
         if ($parentid > 0) {
+            // The answer-before-you-see gate applies to replies too: a student
+            // must post their own response before engaging with anyone else's.
+            if (!$canviewall && !self::has_responded($taskid, $userid)) {
+                throw new \moodle_exception('error_cannotrespondyet', 'mod_task');
+            }
             $parent = $DB->get_record('task_post', ['id' => $parentid], 'id, taskid, deleted');
             if (!$parent || (int)$parent->taskid !== $taskid || $parent->deleted) {
                 throw new \invalid_parameter_exception('Invalid parent post');
