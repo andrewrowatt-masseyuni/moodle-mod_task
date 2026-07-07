@@ -179,6 +179,107 @@ class manager {
     }
 
     /**
+     * Compute the participation grade(s) for a task.
+     *
+     * A response is all-or-nothing; replies and reactions earn a proportional
+     * share of their marks up to the configured number needed for full marks.
+     * The counting rules mirror the completion predicates: only non-deleted
+     * replies to other participants' posts count, and only reactions on other
+     * participants' posts count (each post reacted to counts once, however
+     * many emoji were used; reactions on soft-deleted posts still count).
+     * Contributions whose feature is disabled earn nothing.
+     *
+     * @param \stdClass $task the task record
+     * @param int $userid one user, or 0 for all users with counted participation
+     * @return array of userid => object with userid and rawgrade properties
+     */
+    public static function get_participation_grades(\stdClass $task, int $userid = 0): array {
+        global $CFG, $DB;
+        // For task_grade_max(); not in the always-loaded set, e.g. during AJAX calls.
+        require_once($CFG->dirroot . '/mod/task/lib.php');
+
+        $userwhere = $userid > 0 ? ' AND %s = :userid' : '';
+        $params = ['taskid' => $task->id];
+        if ($userid > 0) {
+            $params['userid'] = $userid;
+        }
+
+        $responders = $DB->get_fieldset_sql(
+            'SELECT DISTINCT userid
+               FROM {task_post}
+              WHERE taskid = :taskid AND parentid = 0 AND deleted = 0' . sprintf($userwhere, 'userid'),
+            $params
+        );
+
+        $replycounts = [];
+        if (!empty($task->enablereplies) && (int) $task->gradereplypoints > 0) {
+            $replycounts = $DB->get_records_sql_menu(
+                'SELECT r.userid, COUNT(1)
+                   FROM {task_post} r
+                   JOIN {task_post} parent ON parent.id = r.parentid
+                  WHERE r.taskid = :taskid AND r.deleted = 0
+                        AND parent.userid <> r.userid' . sprintf($userwhere, 'r.userid') . '
+               GROUP BY r.userid',
+                $params
+            );
+        }
+
+        $reactcounts = [];
+        if (self::reactions_enabled($task) && (int) $task->gradereactpoints > 0) {
+            $reactcounts = $DB->get_records_sql_menu(
+                'SELECT r.userid, COUNT(DISTINCT r.postid)
+                   FROM {task_reaction} r
+                   JOIN {task_post} p ON p.id = r.postid
+                  WHERE p.taskid = :taskid AND p.userid <> r.userid' . sprintf($userwhere, 'r.userid') . '
+               GROUP BY r.userid',
+                $params
+            );
+        }
+
+        $grademax = task_grade_max($task);
+        $grades = [];
+        $userids = array_unique(array_merge($responders, array_keys($replycounts), array_keys($reactcounts)));
+        $responders = array_flip($responders);
+        foreach ($userids as $uid) {
+            $raw = isset($responders[$uid]) ? (float) $task->graderesponsepoints : 0.0;
+            if (isset($replycounts[$uid])) {
+                $needed = max(1, (int) $task->gradereplycount);
+                $raw += $task->gradereplypoints * min((int) $replycounts[$uid], $needed) / $needed;
+            }
+            if (isset($reactcounts[$uid])) {
+                $needed = max(1, (int) $task->gradereactcount);
+                $raw += $task->gradereactpoints * min((int) $reactcounts[$uid], $needed) / $needed;
+            }
+            $grades[$uid] = (object) [
+                'userid' => (int) $uid,
+                'rawgrade' => min($raw, $grademax),
+            ];
+        }
+        return $grades;
+    }
+
+    /**
+     * Re-push one user's participation grade after their participation changed.
+     *
+     * A cheap no-op for ungraded tasks, so it is safe to call from every
+     * mutation path (post created or deleted, reaction toggled).
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the user whose grade may have changed
+     */
+    public static function update_user_grade(int $taskid, int $userid): void {
+        global $CFG;
+
+        $task = self::get_task($taskid);
+        if (empty($task->graded)) {
+            return;
+        }
+        // Not in the always-loaded set, e.g. during AJAX web service calls.
+        require_once($CFG->dirroot . '/mod/task/lib.php');
+        task_update_grades($task, $userid);
+    }
+
+    /**
      * Re-evaluate a user's automatic completion state after their participation changed.
      *
      * @param \stdClass|\cm_info $cm the course module
@@ -634,8 +735,10 @@ class manager {
             event\response_created::create_from_post($record, $cm, $context)->trigger();
         }
 
-        // A new post can satisfy the respond/reply completion conditions.
+        // A new post can satisfy the respond/reply completion conditions and
+        // earn participation marks.
         self::update_completion_state($cm, $userid, true);
+        self::update_user_grade($taskid, $userid);
 
         // Notify participants of the new post according to each recipient's own
         // notification preference (resolved when the adhoc task runs).
@@ -711,8 +814,9 @@ class manager {
         event\post_deleted::create_from_post($post, $cm, $context)->trigger();
 
         // Deleting the author's only response/reply can undo their respond/reply
-        // completion conditions.
+        // completion conditions and reduce their participation marks.
         self::update_completion_state($cm, (int)$post->userid, false);
+        self::update_user_grade((int)$post->taskid, (int)$post->userid);
     }
 
     /**

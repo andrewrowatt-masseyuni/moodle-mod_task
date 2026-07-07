@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/task/db" VERSION="2026070701" COMMENT="mod_task database tables"
+<XMLDB PATH="mod/task/db" VERSION="2026070702" COMMENT="mod_task database tables"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -18,6 +18,12 @@
         <FIELD NAME="anonymousposts" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = students may choose to post responses and replies anonymously to peers"/>
         <FIELD NAME="enablereplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = students may reply to other participants' responses and replies (they can always reply to their own)"/>
         <FIELD NAME="enablereactions" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = emoji reactions are enabled for this activity (also requires the site-wide setting)"/>
+        <FIELD NAME="graded" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = participation is graded into a gradebook item"/>
+        <FIELD NAME="graderesponsepoints" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="80" SEQUENCE="false" COMMENT="Marks for posting a response (all-or-nothing)"/>
+        <FIELD NAME="gradereplypoints" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="10" SEQUENCE="false" COMMENT="Maximum marks earnable from replies to other participants"/>
+        <FIELD NAME="gradereplycount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Number of replies needed for the full reply marks"/>
+        <FIELD NAME="gradereactpoints" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="10" SEQUENCE="false" COMMENT="Maximum marks earnable from reactions to other participants' posts"/>
+        <FIELD NAME="gradereactcount" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Number of posts reacted to needed for the full reaction marks"/>
         <FIELD NAME="completionrespond" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must add a response to complete"/>
         <FIELD NAME="completionreply" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must post a reply to complete"/>
         <FIELD NAME="completionreact" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must make a reaction to complete"/>

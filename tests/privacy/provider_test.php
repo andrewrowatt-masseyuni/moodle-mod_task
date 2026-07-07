@@ -116,7 +116,7 @@ final class provider_test extends provider_testcase {
     }
 
     /**
-     * All four tables are declared in the metadata.
+     * All four tables and the gradebook subsystem link are declared in the metadata.
      */
     public function test_get_metadata(): void {
         $collection = provider::get_metadata(new collection('mod_task'));
@@ -125,7 +125,7 @@ final class provider_test extends provider_testcase {
             $tables[] = $type->get_name();
         }
         $this->assertEqualsCanonicalizing(
-            ['task_post', 'task_reaction', 'task_lastviewed', 'task_notifypref'],
+            ['task_post', 'task_reaction', 'task_lastviewed', 'task_notifypref', 'core_grades'],
             $tables
         );
     }

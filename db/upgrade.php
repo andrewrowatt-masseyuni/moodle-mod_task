@@ -220,5 +220,27 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026070700, 'task');
     }
 
+    if ($oldversion < 2026070702) {
+        // Participation grading: a "Graded task" toggle plus the marks contribution
+        // (and the number needed for full marks) for responses, replies and
+        // reactions. Defaults to ungraded, which was the previous fixed behaviour.
+        $table = new xmldb_table('task');
+        $fields = [
+            new xmldb_field('graded', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '0', 'enablereactions'),
+            new xmldb_field('graderesponsepoints', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '80', 'graded'),
+            new xmldb_field('gradereplypoints', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '10', 'graderesponsepoints'),
+            new xmldb_field('gradereplycount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '1', 'gradereplypoints'),
+            new xmldb_field('gradereactpoints', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '10', 'gradereplycount'),
+            new xmldb_field('gradereactcount', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, '1', 'gradereactpoints'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        upgrade_mod_savepoint(true, 2026070702, 'task');
+    }
+
     return true;
 }

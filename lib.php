@@ -45,7 +45,7 @@ function task_supports($feature) {
         case FEATURE_GROUPINGS:
             return false;
         case FEATURE_GRADE_HAS_GRADE:
-            return false;
+            return true;
         case FEATURE_GRADE_OUTCOMES:
             return false;
         case FEATURE_MOD_PURPOSE:
@@ -91,6 +91,7 @@ function task_add_instance($data, $mform = null) {
     $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
     $data->enablereplies = empty($data->enablereplies) ? 0 : 1;
     $data->enablereactions = empty($data->enablereactions) ? 0 : 1;
+    task_normalise_grade_settings($data);
 
     $data->id = $DB->insert_record('task', $data);
 
@@ -112,6 +113,13 @@ function task_add_instance($data, $mform = null) {
         $DB->update_record('task', $data);
     }
 
+    // The grading settings not present in the submitted data (e.g. the reaction
+    // fields when reactions are disabled site-wide) fall back to their column
+    // defaults, so build the grade item from the stored record.
+    $task = $DB->get_record('task', ['id' => $data->id], '*', MUST_EXIST);
+    $task->cmidnumber = $data->cmidnumber ?? null;
+    task_grade_item_update($task);
+
     return $data->id;
 }
 
@@ -132,6 +140,7 @@ function task_update_instance($data, $mform = null) {
     $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
     $data->enablereplies = empty($data->enablereplies) ? 0 : 1;
     $data->enablereactions = empty($data->enablereactions) ? 0 : 1;
+    task_normalise_grade_settings($data);
 
     if ($mform) {
         $context = context_module::instance($data->coursemodule);
@@ -147,7 +156,16 @@ function task_update_instance($data, $mform = null) {
         );
     }
 
-    return $DB->update_record('task', $data);
+    $result = $DB->update_record('task', $data);
+
+    // A settings change can alter the grade maximum or which contributions
+    // count, so refresh the grade item and re-push every user's grade.
+    $task = $DB->get_record('task', ['id' => $data->id], '*', MUST_EXIST);
+    $task->cmidnumber = $data->cmidnumber ?? null;
+    task_grade_item_update($task);
+    task_update_grades($task, 0, false);
+
+    return $result;
 }
 
 /**
@@ -172,9 +190,140 @@ function task_delete_instance($id) {
     $DB->delete_records('task_post', ['taskid' => $id]);
     $DB->delete_records('task_lastviewed', ['taskid' => $id]);
     $DB->delete_records('task_notifypref', ['taskid' => $id]);
+    task_grade_item_delete($task);
     $DB->delete_records('task', ['id' => $id]);
 
     return true;
+}
+
+/**
+ * Normalise the participation grading settings on submitted form data.
+ *
+ * Only fields present in the data are touched: a field can legitimately be
+ * absent (e.g. the reaction settings when reactions are disabled site-wide),
+ * in which case the stored value must be left alone.
+ *
+ * @param stdClass $data form data, modified in place
+ */
+function task_normalise_grade_settings(stdClass $data): void {
+    $data->graded = empty($data->graded) ? 0 : 1;
+    foreach (['graderesponsepoints', 'gradereplypoints', 'gradereactpoints'] as $field) {
+        if (isset($data->$field)) {
+            $data->$field = max(0, (int) $data->$field);
+        }
+    }
+    foreach (['gradereplycount', 'gradereactcount'] as $field) {
+        if (isset($data->$field)) {
+            $data->$field = max(1, (int) $data->$field);
+        }
+    }
+}
+
+/**
+ * The maximum participation grade for a Task: the sum of the contributions
+ * whose feature is enabled.
+ *
+ * Reply marks only count while replies are enabled, and reaction marks only
+ * count while reactions are enabled both for the activity and site-wide,
+ * mirroring how the completion conditions treat disabled features.
+ *
+ * @param stdClass $task the task record
+ * @return float the grade maximum
+ */
+function task_grade_max(stdClass $task): float {
+    $max = (float) $task->graderesponsepoints;
+    if (!empty($task->enablereplies)) {
+        $max += (float) $task->gradereplypoints;
+    }
+    if (\mod_task\manager::reactions_enabled($task)) {
+        $max += (float) $task->gradereactpoints;
+    }
+    return $max;
+}
+
+/**
+ * Create, update or delete the grade item for a Task.
+ *
+ * An ungraded task has no grade item at all: toggling "Graded task" off
+ * removes the item (and any grades it held) from the gradebook.
+ *
+ * @param stdClass $task the task record (optionally with cmidnumber set)
+ * @param mixed $grades grade(s) to push, 'reset' to wipe all grades, or null
+ * @return int GRADE_UPDATE_OK, GRADE_UPDATE_FAILED or GRADE_UPDATE_MULTIPLE
+ */
+function task_grade_item_update(stdClass $task, $grades = null) {
+    global $CFG;
+    require_once($CFG->libdir . '/gradelib.php');
+
+    if (empty($task->graded)) {
+        return task_grade_item_delete($task);
+    }
+
+    $params = [
+        'itemname' => $task->name,
+        'gradetype' => GRADE_TYPE_VALUE,
+        'grademax' => task_grade_max($task),
+        'grademin' => 0,
+    ];
+    if (isset($task->cmidnumber)) {
+        $params['idnumber'] = $task->cmidnumber;
+    }
+
+    if ($grades === 'reset') {
+        $params['reset'] = true;
+        $grades = null;
+    }
+
+    return grade_update('mod/task', $task->course, 'mod', 'task', $task->id, 0, $grades, $params);
+}
+
+/**
+ * Delete the grade item for a Task.
+ *
+ * @param stdClass $task the task record
+ * @return int GRADE_UPDATE_OK or GRADE_UPDATE_FAILED
+ */
+function task_grade_item_delete(stdClass $task) {
+    global $CFG;
+    require_once($CFG->libdir . '/gradelib.php');
+
+    return grade_update('mod/task', $task->course, 'mod', 'task', $task->id, 0, null, ['deleted' => 1]);
+}
+
+/**
+ * Compute the participation grade(s) for a Task.
+ *
+ * @param stdClass $task the task record
+ * @param int $userid one user, or 0 for all users with counted participation
+ * @return array of userid => object with userid and rawgrade properties
+ */
+function task_get_user_grades(stdClass $task, int $userid = 0): array {
+    return \mod_task\manager::get_participation_grades($task, $userid);
+}
+
+/**
+ * Push the computed participation grade(s) into the gradebook.
+ *
+ * @param stdClass $task the task record
+ * @param int $userid one user, or 0 for all users
+ * @param bool $nullifnone if a single user has no participation, blank any existing grade
+ */
+function task_update_grades(stdClass $task, int $userid = 0, bool $nullifnone = true): void {
+    global $CFG;
+    require_once($CFG->libdir . '/gradelib.php');
+
+    if (empty($task->graded)) {
+        task_grade_item_update($task);
+    } else if ($grades = task_get_user_grades($task, $userid)) {
+        task_grade_item_update($task, $grades);
+    } else if ($userid && $nullifnone) {
+        $grade = new stdClass();
+        $grade->userid = $userid;
+        $grade->rawgrade = null;
+        task_grade_item_update($task, $grade);
+    } else {
+        task_grade_item_update($task);
+    }
 }
 
 /**

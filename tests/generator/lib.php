@@ -51,6 +51,12 @@ class mod_task_generator extends testing_module_generator {
             'anonymousposts' => 1,
             'enablereplies' => 1,
             'enablereactions' => 1,
+            'graded' => 0,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 10,
+            'gradereplycount' => 1,
+            'gradereactpoints' => 10,
+            'gradereactcount' => 1,
         ];
         foreach ($defaults as $field => $value) {
             if (!isset($record->$field)) {
@@ -91,6 +97,8 @@ class mod_task_generator extends testing_module_generator {
             'timemodified' => $now,
         ];
         $post->id = $DB->insert_record('task_post', $post);
+
+        $this->update_participation_grade((int) $post->taskid, (int) $post->userid);
 
         return $post;
     }
@@ -135,6 +143,30 @@ class mod_task_generator extends testing_module_generator {
         ];
         $reaction->id = $DB->insert_record('task_reaction', $reaction);
 
+        $taskid = (int) $DB->get_field('task_post', 'taskid', ['id' => $record['postid']], MUST_EXIST);
+        $this->update_participation_grade($taskid, (int) $reaction->userid);
+
         return $reaction;
+    }
+
+    /**
+     * Push the participation grade of a generated post's or reaction's author.
+     *
+     * The generator inserts rows directly rather than going through
+     * \mod_task\manager, so the grade recalculation that normally runs when a
+     * user participates has to be triggered here.
+     *
+     * @param int $taskid the task instance id
+     * @param int $userid the participating user id
+     */
+    private function update_participation_grade(int $taskid, int $userid): void {
+        global $CFG, $DB;
+
+        $task = $DB->get_record('task', ['id' => $taskid], '*', MUST_EXIST);
+        if (empty($task->graded)) {
+            return;
+        }
+        require_once($CFG->dirroot . '/mod/task/lib.php');
+        task_update_grades($task, $userid);
     }
 }

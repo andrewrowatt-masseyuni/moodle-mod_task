@@ -26,6 +26,11 @@ namespace mod_task;
  * @covers     \task_get_coursemodule_info
  * @covers     \task_cm_info_dynamic
  * @covers     \task_cm_info_view
+ * @covers     \task_grade_max
+ * @covers     \task_grade_item_update
+ * @covers     \task_grade_item_delete
+ * @covers     \task_get_user_grades
+ * @covers     \task_update_grades
  */
 final class lib_test extends \advanced_testcase {
     /**
@@ -117,5 +122,160 @@ final class lib_test extends \advanced_testcase {
         $this->assertEquals(1, $rules['completionrespond']);
         $this->assertEquals(0, $rules['completionreply']);
         $this->assertEquals(0, $rules['completionreact']);
+    }
+
+    /**
+     * Fetch the gradebook item for a Task, or false if there is none.
+     *
+     * @param stdClass $task the task record
+     * @return \grade_item|false
+     */
+    protected function get_grade_item(\stdClass $task) {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+        return \grade_item::fetch([
+            'courseid' => $task->course,
+            'itemtype' => 'mod',
+            'itemmodule' => 'task',
+            'iteminstance' => $task->id,
+            'itemnumber' => 0,
+        ]);
+    }
+
+    /**
+     * Fetch a user's final grade for a Task, or null if there is none.
+     *
+     * @param stdClass $task the task record
+     * @param int $userid the user id
+     * @return float|null
+     */
+    protected function get_final_grade(\stdClass $task, int $userid): ?float {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+        $grades = grade_get_grades($task->course, 'mod', 'task', $task->id, $userid);
+        $grade = $grades->items[0]->grades[$userid]->grade ?? null;
+        return $grade === null ? null : (float) $grade;
+    }
+
+    public function test_graded_task_creates_grade_item(): void {
+        ['task' => $task] = $this->setup_course_task([
+            'graded' => 1,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 20,
+            'gradereplycount' => 2,
+            'gradereactpoints' => 10,
+            'gradereactcount' => 1,
+        ]);
+
+        $item = $this->get_grade_item($task);
+        $this->assertNotFalse($item);
+        $this->assertEquals(GRADE_TYPE_VALUE, $item->gradetype);
+        $this->assertEquals(110.0, (float) $item->grademax);
+        $this->assertEquals(0.0, (float) $item->grademin);
+        $this->assertSame($task->name, $item->itemname);
+    }
+
+    public function test_ungraded_task_creates_no_grade_item(): void {
+        ['task' => $task] = $this->setup_course_task(['graded' => 0]);
+
+        $this->assertFalse($this->get_grade_item($task));
+    }
+
+    public function test_grade_max_excludes_disabled_features(): void {
+        ['task' => $task] = $this->setup_course_task([
+            'graded' => 1,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 20,
+            'gradereactpoints' => 10,
+            'enablereplies' => 0,
+            'enablereactions' => 0,
+        ]);
+        $this->assertEquals(80.0, task_grade_max($task));
+        $this->assertEquals(80.0, (float) $this->get_grade_item($task)->grademax);
+
+        // Reactions disabled site-wide are excluded even when the activity enables them.
+        set_config('enablereactions', '0', 'mod_task');
+        ['task' => $task2] = $this->setup_course_task([
+            'graded' => 1,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 20,
+            'gradereactpoints' => 10,
+        ]);
+        $this->assertEquals(100.0, task_grade_max($task2));
+    }
+
+    public function test_update_grades_caps_and_prorates(): void {
+        $gen = $this->getDataGenerator();
+        ['course' => $course, 'task' => $task] = $this->setup_course_task([
+            'graded' => 1,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 20,
+            'gradereplycount' => 2,
+            'gradereactpoints' => 10,
+            'gradereactcount' => 2,
+        ]);
+        $student1 = $gen->create_and_enrol($course, 'student');
+        $student2 = $gen->create_and_enrol($course, 'student');
+        $taskgen = $gen->get_plugin_generator('mod_task');
+
+        $peerpost = $taskgen->create_response([
+            'taskid' => $task->id,
+            'userid' => $student2->id,
+            'content' => '<p>Peer response.</p>',
+        ]);
+        $this->assertEquals(80.0, $this->get_final_grade($task, (int) $student2->id));
+
+        // Response (80) + one of two required replies (10) + one of two required
+        // posts reacted to (5) = 95.
+        $taskgen->create_response([
+            'taskid' => $task->id,
+            'userid' => $student1->id,
+            'content' => '<p>My response.</p>',
+        ]);
+        $taskgen->create_reply([
+            'taskid' => $task->id,
+            'userid' => $student1->id,
+            'parentid' => $peerpost->id,
+            'content' => '<p>My reply.</p>',
+        ]);
+        $taskgen->create_reaction(['postid' => $peerpost->id, 'userid' => $student1->id]);
+        $this->assertEquals(95.0, $this->get_final_grade($task, (int) $student1->id));
+
+        // Further replies beyond the required number stay capped at the reply marks.
+        $taskgen->create_reply([
+            'taskid' => $task->id,
+            'userid' => $student1->id,
+            'parentid' => $peerpost->id,
+            'content' => '<p>Another reply.</p>',
+        ]);
+        $taskgen->create_reply([
+            'taskid' => $task->id,
+            'userid' => $student1->id,
+            'parentid' => $peerpost->id,
+            'content' => '<p>A third reply.</p>',
+        ]);
+        $this->assertEquals(105.0, $this->get_final_grade($task, (int) $student1->id));
+    }
+
+    public function test_update_instance_toggling_graded_off_deletes_item(): void {
+        ['task' => $task, 'cm' => $cm] = $this->setup_course_task(['graded' => 1]);
+        $this->assertNotFalse($this->get_grade_item($task));
+
+        $data = clone $task;
+        $data->instance = $task->id;
+        $data->coursemodule = $cm->id;
+        $data->graded = 0;
+        task_update_instance($data, null);
+
+        $this->assertFalse($this->get_grade_item($task));
+    }
+
+    public function test_delete_instance_deletes_grade_item(): void {
+        ['task' => $task] = $this->setup_course_task(['graded' => 1]);
+        $this->assertNotFalse($this->get_grade_item($task));
+
+        task_delete_instance($task->id);
+
+        $this->assertFalse($this->get_grade_item($task));
     }
 }
