@@ -48,16 +48,6 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->addRule('name', null, 'required', null, 'client');
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
 
-        $mform->addElement(
-            'select',
-            'tasktype',
-            get_string('tasktype', 'mod_task'),
-            \mod_task\manager::get_task_type_options()
-        );
-        $mform->setType('tasktype', PARAM_ALPHANUMEXT);
-        $mform->setDefault('tasktype', \mod_task\manager::default_task_type());
-        $mform->addHelpButton('tasktype', 'tasktype', 'mod_task');
-
         // The task the student responds to is the standard activity description,
         // relabelled. It is always visible to everyone who can view the activity.
         $this->standard_intro_elements(get_string('taskdescription', 'mod_task'));
@@ -89,6 +79,22 @@ class mod_task_mod_form extends moodleform_mod {
         );
         $mform->setDefault('anonymousposts', 1);
         $mform->addHelpButton('anonymousposts', 'anonymousposts', 'mod_task');
+
+        $mform->addElement(
+            'selectyesno',
+            'enablereplies',
+            get_string('enablereplies', 'mod_task')
+        );
+        $mform->setDefault('enablereplies', 1);
+        $mform->addHelpButton('enablereplies', 'enablereplies', 'mod_task');
+
+        $mform->addElement(
+            'selectyesno',
+            'enablereactions',
+            get_string('enablereactions', 'mod_task')
+        );
+        $mform->setDefault('enablereactions', 1);
+        $mform->addHelpButton('enablereactions', 'enablereactions', 'mod_task');
 
         $mform->addElement(
             'selectyesno',
@@ -134,19 +140,35 @@ class mod_task_mod_form extends moodleform_mod {
     /**
      * Add the custom completion rule checkboxes: respond, reply, react.
      *
+     * The reply and react conditions only make sense when the matching activity
+     * setting is on, so each is hidden when its feature is disabled. Reactions can
+     * also be turned off site-wide, in which case the react condition is omitted
+     * entirely (there is no per-activity control to hide it against).
+     *
      * @return string[] the names of the added elements
      */
     public function add_completion_rules() {
         $mform = $this->_form;
         $suffix = $this->get_suffix();
 
+        $rules = ['completionrespond', 'completionreply'];
+        if (get_config('mod_task', 'enablereactions') !== '0') {
+            $rules[] = 'completionreact';
+        }
+
         $elements = [];
-        foreach (['completionrespond', 'completionreply', 'completionreact'] as $rule) {
+        foreach ($rules as $rule) {
             $element = $rule . $suffix;
             $mform->addElement('checkbox', $element, '', get_string($rule, 'mod_task'));
             $mform->setDefault($element, 0);
             $elements[] = $element;
         }
+
+        $mform->hideIf('completionreply' . $suffix, 'enablereplies', 'eq', 0);
+        if (in_array('completionreact' . $suffix, $elements, true)) {
+            $mform->hideIf('completionreact' . $suffix, 'enablereactions', 'eq', 0);
+        }
+
         return $elements;
     }
 
@@ -174,8 +196,15 @@ class mod_task_mod_form extends moodleform_mod {
             $suffix = $this->get_suffix();
             $autocompletion = !empty($data->{'completion' . $suffix})
                 && $data->{'completion' . $suffix} == COMPLETION_TRACKING_AUTOMATIC;
+            // A completion condition cannot be required when its feature is off,
+            // otherwise the activity could never be completed.
+            $disabled = [
+                'completionreply' => empty($data->enablereplies),
+                'completionreact' => empty($data->enablereactions)
+                    || get_config('mod_task', 'enablereactions') === '0',
+            ];
             foreach (['completionrespond', 'completionreply', 'completionreact'] as $rule) {
-                if (empty($data->{$rule . $suffix}) || !$autocompletion) {
+                if (empty($data->{$rule . $suffix}) || !$autocompletion || !empty($disabled[$rule])) {
                     $data->{$rule . $suffix} = 0;
                 }
             }
@@ -195,10 +224,6 @@ class mod_task_mod_form extends moodleform_mod {
         $description = $data['introeditor']['text'] ?? '';
         if (trim(html_to_text($description)) === '' && stripos($description, '<img') === false) {
             $errors['introeditor'] = get_string('required');
-        }
-
-        if (!array_key_exists($data['tasktype'] ?? '', \mod_task\manager::get_task_type_options())) {
-            $errors['tasktype'] = get_string('required');
         }
 
         return $errors;

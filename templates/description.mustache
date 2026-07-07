@@ -24,15 +24,13 @@
 
     Context variables required for this template:
     * taskdescription (string) the formatted description (intro) HTML
-    * taskdescriptioncssclasses (string) space-separated CSS classes for the configured Task type
 
     Example context (json):
     {
-        "taskdescription": "<p>What stood out to you?</p>",
-        "taskdescriptioncssclasses": "c4lv-mu-explore c4lv-mu-explore1"
+        "taskdescription": "<p>What stood out to you?</p>"
     }
 }}
-<div class="mod-task-description mu-c4l c4l-mu-activities {{taskdescriptioncssclasses}}" data-region="task-description">
+<div class="mod-task-description" data-region="task-description">
   <h2 class="h5 mod-task-description-heading">{{#str}}taskdescription, mod_task{{/str}}</h2>
   {{{taskdescription}}}
 </div>

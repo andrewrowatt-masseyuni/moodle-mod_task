@@ -90,4 +90,32 @@ final class lib_test extends \advanced_testcase {
         $this->assertFalse($modcm->uservisible);
         $this->assertSame('', $modcm->get_formatted_content());
     }
+
+    public function test_completion_rules_reported_inactive_when_features_disabled(): void {
+        global $CFG;
+        require_once($CFG->libdir . '/completionlib.php');
+
+        $this->setAdminUser();
+        $gen = $this->getDataGenerator();
+        $course = $gen->create_course(['enablecompletion' => 1]);
+        $task = $gen->get_plugin_generator('mod_task')->create_instance([
+            'course' => $course->id,
+            'completion' => COMPLETION_TRACKING_AUTOMATIC,
+            'completionrespond' => 1,
+            'completionreply' => 1,
+            'completionreact' => 1,
+            'enablereplies' => 0,
+            'enablereactions' => 0,
+        ]);
+        $cm = get_coursemodule_from_instance('task', $task->id);
+
+        $info = task_get_coursemodule_info($cm);
+        $rules = $info->customdata['customcompletionrules'];
+
+        // Respond stays active; reply and react are reported inactive because
+        // their features are turned off, so neither is required nor shown.
+        $this->assertEquals(1, $rules['completionrespond']);
+        $this->assertEquals(0, $rules['completionreply']);
+        $this->assertEquals(0, $rules['completionreact']);
+    }
 }

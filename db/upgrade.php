@@ -193,5 +193,32 @@ function xmldb_task_upgrade($oldversion) {
         upgrade_mod_savepoint(true, 2026070500, 'task');
     }
 
+    if ($oldversion < 2026070700) {
+        // Per-activity "Enable replies" and "Enable reactions" let a teacher turn
+        // off peer replies and/or emoji reactions for an activity. Both default to
+        // enabled, which was the previous fixed behaviour.
+        $table = new xmldb_table('task');
+        $fields = [
+            new xmldb_field('enablereplies', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'anonymousposts'),
+            new xmldb_field('enablereactions', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'enablereplies'),
+        ];
+        foreach ($fields as $field) {
+            if (!$dbman->field_exists($table, $field)) {
+                $dbman->add_field($table, $field);
+            }
+        }
+
+        // The per-activity "Task type" concept has been removed entirely, along
+        // with its site-wide "Task types" setting, so drop the column it used and
+        // forget the orphaned site config.
+        $tasktype = new xmldb_field('tasktype');
+        if ($dbman->field_exists($table, $tasktype)) {
+            $dbman->drop_field($table, $tasktype);
+        }
+        unset_config('tasktypes', 'mod_task');
+
+        upgrade_mod_savepoint(true, 2026070700, 'task');
+    }
+
     return true;
 }

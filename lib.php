@@ -89,9 +89,8 @@ function task_add_instance($data, $mform = null) {
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
     $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
     $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
-    if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
-        $data->tasktype = \mod_task\manager::default_task_type();
-    }
+    $data->enablereplies = empty($data->enablereplies) ? 0 : 1;
+    $data->enablereactions = empty($data->enablereactions) ? 0 : 1;
 
     $data->id = $DB->insert_record('task', $data);
 
@@ -131,9 +130,8 @@ function task_update_instance($data, $mform = null) {
     $data->teacherresponseismodelanswer = empty($data->teacherresponseismodelanswer) ? 0 : 1;
     $data->embedoncoursepage = empty($data->embedoncoursepage) ? 0 : 1;
     $data->anonymousposts = empty($data->anonymousposts) ? 0 : 1;
-    if (!array_key_exists($data->tasktype ?? '', \mod_task\manager::get_task_type_options())) {
-        $data->tasktype = \mod_task\manager::default_task_type();
-    }
+    $data->enablereplies = empty($data->enablereplies) ? 0 : 1;
+    $data->enablereactions = empty($data->enablereactions) ? 0 : 1;
 
     if ($mform) {
         $context = context_module::instance($data->coursemodule);
@@ -188,7 +186,7 @@ function task_delete_instance($id) {
 function task_get_coursemodule_info($coursemodule) {
     global $DB;
 
-    $fields = 'id, name, intro, introformat, embedoncoursepage, '
+    $fields = 'id, name, intro, introformat, embedoncoursepage, enablereplies, enablereactions, '
         . 'completionrespond, completionreply, completionreact';
     $task = $DB->get_record('task', ['id' => $coursemodule->instance], $fields);
     if (!$task) {
@@ -203,11 +201,16 @@ function task_get_coursemodule_info($coursemodule) {
     $info->customdata = ['embedoncoursepage' => (bool) $task->embedoncoursepage];
 
     // Populate the custom completion rules as key => value pairs, but only if
-    // completion is enabled for this module.
+    // completion is enabled for this module. A rule whose feature is turned off
+    // (replies, or reactions site-wide or per-activity) is reported as inactive,
+    // so it is neither required for completion nor shown as a condition.
     if ($coursemodule->completion == COMPLETION_TRACKING_AUTOMATIC) {
+        $repliesenabled = !empty($task->enablereplies);
+        $reactionsenabled = !empty($task->enablereactions)
+            && get_config('mod_task', 'enablereactions') !== '0';
         $info->customdata['customcompletionrules']['completionrespond'] = $task->completionrespond;
-        $info->customdata['customcompletionrules']['completionreply'] = $task->completionreply;
-        $info->customdata['customcompletionrules']['completionreact'] = $task->completionreact;
+        $info->customdata['customcompletionrules']['completionreply'] = $repliesenabled ? $task->completionreply : 0;
+        $info->customdata['customcompletionrules']['completionreact'] = $reactionsenabled ? $task->completionreact : 0;
     }
 
     return $info;

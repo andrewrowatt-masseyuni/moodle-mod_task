@@ -65,6 +65,11 @@ class react_post extends external_api {
         self::validate_context($context);
         require_capability('mod/task:react', $context);
 
+        // Reactions can be turned off site-wide or for this activity.
+        if (!manager::reactions_enabled(manager::get_task((int)$post->taskid))) {
+            throw new \moodle_exception('error_reactionsdisabled', 'mod_task');
+        }
+
         // A student must be able to see responses (i.e. have responded) before reacting.
         if (!manager::can_see_responses($context, (int)$post->taskid)) {
             throw new \moodle_exception('error_cannotrespondyet', 'mod_task');

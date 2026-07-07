@@ -108,4 +108,28 @@ final class react_post_test extends \externallib_advanced_testcase {
         $this->expectExceptionMessage(get_string('error_cannotrespondyet', 'mod_task'));
         react_post::execute((int)$data['post']->id, 'thumbsup');
     }
+
+    public function test_react_rejected_when_reactions_disabled(): void {
+        global $DB;
+
+        $data = $this->setup_course_task();
+        // Turn reactions off for this activity. A teacher otherwise passes both
+        // the capability and the gating checks, isolating the reactions switch.
+        $DB->set_field('task', 'enablereactions', 0, ['id' => $data['task']->id]);
+
+        $this->setUser($data['teacher']);
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('error_reactionsdisabled', 'mod_task'));
+        react_post::execute((int)$data['post']->id, 'thumbsup');
+    }
+
+    public function test_react_rejected_when_reactions_disabled_site_wide(): void {
+        $data = $this->setup_course_task();
+        set_config('enablereactions', 0, 'mod_task');
+
+        $this->setUser($data['teacher']);
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('error_reactionsdisabled', 'mod_task'));
+        react_post::execute((int)$data['post']->id, 'thumbsup');
+    }
 }
