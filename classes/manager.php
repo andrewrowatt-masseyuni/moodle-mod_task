@@ -32,12 +32,6 @@ class manager {
     /** @var string Default emoji set as comma-separated shortcode:unicode pairs. */
     const DEFAULT_EMOJIS = 'thumbsup:👍,heart:❤️,laugh:😂,think:🤔,celebrate:🎉,surprise:😮,thanks:🙏';
 
-    /** @var string Default Task type definitions: one "shortname|name|CSS classes" line per type. */
-    const DEFAULT_TASKTYPES = "explore|Explore|c4lv-mu-explore c4lv-mu-explore1\n"
-        . "watch|Watch|c4lv-mu-watch c4lv-mu-watch1\n"
-        . "read|Read|c4lv-mu-read c4lv-mu-read1\n"
-        . "write|Write|c4lv-mu-write c4lv-mu-write1";
-
     /** @var int Notification preference: mute all notifications. */
     const NOTIFY_NONE = 0;
 
@@ -52,9 +46,6 @@ class manager {
 
     /** @var array<string,string>|null Per-request cache of the parsed emoji set. */
     private static ?array $emojisetcache = null;
-
-    /** @var array<string,array{name:string,cssclasses:string}>|null Per-request cache of the parsed Task types. */
-    private static ?array $tasktypescache = null;
 
     /**
      * The recognised notification preferences in display order.
@@ -102,7 +93,21 @@ class manager {
     }
 
     /**
-     * Reset the per-request config caches (emoji set, Task types).
+     * Whether emoji reactions are enabled for a task.
+     *
+     * Reactions require both the site-wide "Enable reactions" setting and the
+     * per-activity "Enable reactions" setting to be on; either turned off
+     * disables reactions for the activity.
+     *
+     * @param \stdClass $task the task record (must include the enablereactions field)
+     * @return bool
+     */
+    public static function reactions_enabled(\stdClass $task): bool {
+        return !empty($task->enablereactions) && get_config('mod_task', 'enablereactions') !== '0';
+    }
+
+    /**
+     * Reset the per-request config caches (emoji set).
      *
      * Only needed by tests: PHPUnit does not restart the PHP process between
      * test methods, so a static cache populated in one test would otherwise
@@ -110,93 +115,6 @@ class manager {
      */
     public static function reset_caches(): void {
         self::$emojisetcache = null;
-        self::$tasktypescache = null;
-    }
-
-    /**
-     * Parse the "shortname|name|CSS classes" lines of a Task types definition.
-     *
-     * Malformed lines (wrong number of parts, an empty shortname/name, or a
-     * shortname containing whitespace) are silently skipped: the admin setting
-     * itself rejects malformed input at save time (see {@see admin_setting_tasktypes}),
-     * so this lenient parse only has to cope with an empty or unset config.
-     *
-     * @param string $config the raw textarea content
-     * @return array<string,array{name:string,cssclasses:string}> keyed by shortname, in file order
-     */
-    public static function parse_tasktypes_config(string $config): array {
-        $types = [];
-        foreach (preg_split('/\r\n|\r|\n/', $config) as $line) {
-            $line = trim($line);
-            if ($line === '') {
-                continue;
-            }
-            $parts = explode('|', $line, 3);
-            if (count($parts) !== 3) {
-                continue;
-            }
-            [$shortname, $name, $cssclasses] = array_map('trim', $parts);
-            if ($shortname === '' || $name === '' || preg_match('/\s/', $shortname)) {
-                continue;
-            }
-            $types[$shortname] = ['name' => $name, 'cssclasses' => $cssclasses];
-        }
-        return $types;
-    }
-
-    /**
-     * Get the configured Task types.
-     *
-     * @return array<string,array{name:string,cssclasses:string}> keyed by shortname, in configured order
-     */
-    public static function get_task_types(): array {
-        if (self::$tasktypescache !== null) {
-            return self::$tasktypescache;
-        }
-
-        $config = get_config('mod_task', 'tasktypes');
-        if (empty($config)) {
-            $config = self::DEFAULT_TASKTYPES;
-        }
-
-        $types = self::parse_tasktypes_config((string)$config);
-        if (empty($types)) {
-            $types = self::parse_tasktypes_config(self::DEFAULT_TASKTYPES);
-        }
-        return self::$tasktypescache = $types;
-    }
-
-    /**
-     * Task type options for the per-activity dropdown.
-     *
-     * @return array<string,string> shortname => display name, in configured order
-     */
-    public static function get_task_type_options(): array {
-        $options = [];
-        foreach (self::get_task_types() as $shortname => $type) {
-            $options[$shortname] = $type['name'];
-        }
-        return $options;
-    }
-
-    /**
-     * The default Task type shortname (the first configured type).
-     *
-     * @return string
-     */
-    public static function default_task_type(): string {
-        $shortnames = array_keys(self::get_task_types());
-        return $shortnames[0] ?? 'explore';
-    }
-
-    /**
-     * The CSS classes for a Task type, to decorate the description panel.
-     *
-     * @param string $shortname the Task type shortname
-     * @return string space-separated CSS classes, or '' if the shortname is not configured
-     */
-    public static function get_task_type_css(string $shortname): string {
-        return self::get_task_types()[$shortname]['cssclasses'] ?? '';
     }
 
     /**
@@ -349,9 +267,11 @@ class manager {
         $cm = get_coursemodule_from_instance('task', $taskid, 0, false, MUST_EXIST);
         $renderer = $PAGE->get_renderer('core');
 
+        $repliesenabled = !empty($task->enablereplies);
+        $reactionsenabled = self::reactions_enabled($task);
         $canrespond = has_capability('mod/task:respond', $context);
         $canreply = has_capability('mod/task:reply', $context);
-        $canreact = has_capability('mod/task:react', $context);
+        $canreact = has_capability('mod/task:react', $context) && $reactionsenabled;
         $canviewall = has_capability('mod/task:viewallresponses', $context);
         $canmanage = has_capability('mod/task:manageresponses', $context);
         $hasresponded = self::has_responded($taskid, (int)$USER->id);
@@ -381,7 +301,6 @@ class manager {
                 (int)$task->introformat,
                 'intro'
             ),
-            'taskdescriptioncssclasses' => self::get_task_type_css($task->tasktype),
             'canrespond' => $canrespond,
             'canaddresponse' => $canaddresponse,
             // The per-user notification preference panel is offered to anyone who
@@ -435,7 +354,15 @@ class manager {
             $payload['showteacherresponsenote'] = $canviewall;
         }
 
-        $payload['posts'] = self::build_posts($context, $taskid, $canviewall, $canmanage, $canreply, $renderer);
+        $payload['posts'] = self::build_posts(
+            $context,
+            $taskid,
+            $canviewall,
+            $canmanage,
+            $canreply,
+            $repliesenabled,
+            $renderer
+        );
         $payload['postcount'] = count($payload['posts']);
 
         return $payload;
@@ -449,6 +376,7 @@ class manager {
      * @param bool $canviewall whether the viewer is staff
      * @param bool $canmanage whether the viewer can moderate
      * @param bool $canreply whether the viewer can reply
+     * @param bool $repliesenabled whether replies to other participants are enabled
      * @param \renderer_base $renderer the core renderer
      * @return array list of post view rows
      */
@@ -458,6 +386,7 @@ class manager {
         bool $canviewall,
         bool $canmanage,
         bool $canreply,
+        bool $repliesenabled,
         \renderer_base $renderer
     ): array {
         global $DB, $USER;
@@ -492,6 +421,7 @@ class manager {
                 $canviewall,
                 $canmanage,
                 $canreply,
+                $repliesenabled,
                 $renderer
             );
         }
@@ -509,6 +439,7 @@ class manager {
      * @param bool $canviewall whether the viewer is staff (sees real names)
      * @param bool $canmanage whether the viewer can moderate
      * @param bool $canreply whether the viewer can reply
+     * @param bool $repliesenabled whether replies to other participants are enabled
      * @param \renderer_base $renderer the core renderer
      * @return array the post view row
      */
@@ -521,6 +452,7 @@ class manager {
         bool $canviewall,
         bool $canmanage,
         bool $canreply,
+        bool $repliesenabled,
         \renderer_base $renderer
     ): array {
         global $USER, $DB;
@@ -564,6 +496,16 @@ class manager {
         $candelete = !$post->deleted && $canmanage;
         $canedit = !$post->deleted && $canmanage;
 
+        // When replies to other participants are disabled, a student may still
+        // reply within their own response thread; staff (canviewall) are exempt.
+        $canreplytothis = $canreply && !$post->deleted;
+        if ($canreplytothis && !$repliesenabled && !$canviewall) {
+            $rootauthor = ((int)$post->parentid === 0)
+                ? $authorid
+                : self::thread_root_author((int)$post->id);
+            $canreplytothis = ($rootauthor === (int)$USER->id);
+        }
+
         return [
             'id' => (int)$post->id,
             'parentid' => (int)$post->parentid,
@@ -589,7 +531,7 @@ class manager {
             ],
             'canedit' => $canedit,
             'candelete' => $candelete,
-            'canreply' => $canreply && !$post->deleted,
+            'canreply' => $canreplytothis,
         ];
     }
 
@@ -642,6 +584,7 @@ class manager {
         // Staff (who can view all responses) are not limited; students may post
         // exactly one top-level response, but any number of replies.
         $canviewall = has_capability('mod/task:viewallresponses', $context, $userid);
+        $task = self::get_task($taskid);
 
         if ($parentid > 0) {
             // The answer-before-you-see gate applies to replies too: a student
@@ -653,13 +596,21 @@ class manager {
             if (!$parent || (int)$parent->taskid !== $taskid || $parent->deleted) {
                 throw new \invalid_parameter_exception('Invalid parent post');
             }
+            // Replies to other participants can be disabled per-activity; a student
+            // may then only reply within their own response thread. Staff are exempt.
+            if (
+                !$canviewall && empty($task->enablereplies)
+                    && self::thread_root_author($parentid) !== $userid
+            ) {
+                throw new \moodle_exception('error_repliesdisabled', 'mod_task');
+            }
         } else if (!$canviewall && self::has_responded($taskid, $userid)) {
             throw new \moodle_exception('error_alreadyresponded', 'mod_task');
         }
 
         // Only students (who cannot view all responses) may post anonymously,
         // and only where the activity allows anonymous posts.
-        $allowanonymous = !empty(self::get_task($taskid)->anonymousposts);
+        $allowanonymous = !empty($task->anonymousposts);
         $anonymous = ($anonymous && !$canviewall && $allowanonymous) ? 1 : 0;
 
         $now = time();

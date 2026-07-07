@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="mod/task/db" VERSION="2026070500" COMMENT="mod_task database tables"
+<XMLDB PATH="mod/task/db" VERSION="2026070701" COMMENT="mod_task database tables"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -9,7 +9,6 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="course" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="true" SEQUENCE="false"/>
-        <FIELD NAME="tasktype" TYPE="char" LENGTH="100" NOTNULL="true" DEFAULT="explore" SEQUENCE="false" COMMENT="Shortname of the configured Task type, controls the description panel's CSS classes"/>
         <FIELD NAME="intro" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Rich-text task the student responds to (the activity description)"/>
         <FIELD NAME="introformat" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="teacherresponse" TYPE="text" NOTNULL="false" SEQUENCE="false" COMMENT="Optional rich-text teacher response, revealed after the student posts"/>
@@ -17,6 +16,8 @@
         <FIELD NAME="teacherresponseismodelanswer" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = badge the teacher response as a model answer"/>
         <FIELD NAME="embedoncoursepage" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = show the Task's embedded widget directly on the course page instead of a linked activity card"/>
         <FIELD NAME="anonymousposts" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = students may choose to post responses and replies anonymously to peers"/>
+        <FIELD NAME="enablereplies" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = students may reply to other participants' responses and replies (they can always reply to their own)"/>
+        <FIELD NAME="enablereactions" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = emoji reactions are enabled for this activity (also requires the site-wide setting)"/>
         <FIELD NAME="completionrespond" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must add a response to complete"/>
         <FIELD NAME="completionreply" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must post a reply to complete"/>
         <FIELD NAME="completionreact" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="1 = student must make a reaction to complete"/>

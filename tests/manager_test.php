@@ -288,6 +288,123 @@ final class manager_test extends \advanced_testcase {
         $this->assertFalse(manager::get_task_view($data['context'], (int)$data['task']->id)['canreact']);
     }
 
+    public function test_reactions_enabled_helper_needs_site_and_activity(): void {
+        $task = (object) ['enablereactions' => 1];
+        $this->assertTrue(manager::reactions_enabled($task));
+
+        set_config('enablereactions', 0, 'mod_task');
+        $this->assertFalse(manager::reactions_enabled($task));
+
+        set_config('enablereactions', 1, 'mod_task');
+        $this->assertTrue(manager::reactions_enabled($task));
+
+        $task->enablereactions = 0;
+        $this->assertFalse(manager::reactions_enabled($task));
+    }
+
+    public function test_canreact_false_when_activity_reactions_disabled(): void {
+        $data = $this->setup_course_task(['enablereactions' => 0]);
+
+        $this->setUser($data['student1']);
+        $this->assertFalse(manager::get_task_view($data['context'], (int)$data['task']->id)['canreact']);
+    }
+
+    public function test_canreact_false_when_site_reactions_disabled(): void {
+        $data = $this->setup_course_task();
+        set_config('enablereactions', 0, 'mod_task');
+
+        $this->setUser($data['student1']);
+        $this->assertFalse(manager::get_task_view($data['context'], (int)$data['task']->id)['canreact']);
+    }
+
+    public function test_replies_disabled_blocks_replying_to_a_peer(): void {
+        $data = $this->setup_course_task(['enablereplies' => 0]);
+        $peer = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+        ]);
+
+        // The student must respond before they can engage with anyone else's post.
+        $this->setUser($data['student1']);
+        manager::create_post($data['context'], (int)$data['task']->id, 0, '<p>Mine.</p>', false, (int)$data['student1']->id);
+
+        $this->expectException(\moodle_exception::class);
+        $this->expectExceptionMessage(get_string('error_repliesdisabled', 'mod_task'));
+        manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$peer->id,
+            '<p>Reply to a peer.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+    }
+
+    public function test_replies_disabled_allows_replying_within_own_thread(): void {
+        $data = $this->setup_course_task(['enablereplies' => 0]);
+
+        $this->setUser($data['student1']);
+        $own = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Mine.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$own->id,
+            '<p>Following up on my own response.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+        $this->assertGreaterThan(0, $reply->id);
+    }
+
+    public function test_replies_disabled_still_allows_staff(): void {
+        $data = $this->setup_course_task(['enablereplies' => 0]);
+        $response = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student1']->id,
+        ]);
+
+        $this->setUser($data['teacher']);
+        $reply = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            (int)$response->id,
+            '<p>Teacher reply.</p>',
+            false,
+            (int)$data['teacher']->id
+        );
+        $this->assertGreaterThan(0, $reply->id);
+    }
+
+    public function test_replies_disabled_reflected_in_canreply_flags(): void {
+        $data = $this->setup_course_task(['enablereplies' => 0]);
+        $peer = $data['taskgen']->create_response([
+            'taskid' => $data['task']->id,
+            'userid' => $data['student2']->id,
+        ]);
+
+        $this->setUser($data['student1']);
+        $own = manager::create_post(
+            $data['context'],
+            (int)$data['task']->id,
+            0,
+            '<p>Mine.</p>',
+            false,
+            (int)$data['student1']->id
+        );
+
+        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
+        // A student may reply within their own thread but not to a peer.
+        $this->assertTrue($this->find_post($view, (int)$own->id)['canreply']);
+        $this->assertFalse($this->find_post($view, (int)$peer->id)['canreply']);
+    }
+
     public function test_students_cannot_edit_or_delete_their_post(): void {
         global $DB;
 
@@ -833,50 +950,6 @@ final class manager_test extends \advanced_testcase {
             false,
             (int)$data['student2']->id
         );
-    }
-
-    public function test_parse_tasktypes_config_skips_malformed_lines(): void {
-        $config = "explore|Explore|c4lv-mu-explore\n"
-            . "\n"
-            . "not-enough-parts\n"
-            . "has space|Bad shortname|css\n"
-            . "|Empty shortname|css\n"
-            . "watch|Watch|c4lv-mu-watch c4lv-mu-watch1";
-
-        $types = manager::parse_tasktypes_config($config);
-
-        $this->assertSame(['explore', 'watch'], array_keys($types));
-        $this->assertSame('Explore', $types['explore']['name']);
-        $this->assertSame('c4lv-mu-explore', $types['explore']['cssclasses']);
-        $this->assertSame('Watch', $types['watch']['name']);
-        $this->assertSame('c4lv-mu-watch c4lv-mu-watch1', $types['watch']['cssclasses']);
-    }
-
-    public function test_get_task_types_falls_back_to_default_when_unset(): void {
-        set_config('tasktypes', '', 'mod_task');
-
-        $options = manager::get_task_type_options();
-
-        $this->assertSame(['explore', 'watch', 'read', 'write'], array_keys($options));
-        $this->assertSame('explore', manager::default_task_type());
-    }
-
-    public function test_get_task_types_reads_site_config(): void {
-        set_config('tasktypes', "custom|Custom Type|my-css-class", 'mod_task');
-
-        $this->assertSame(['custom' => 'Custom Type'], manager::get_task_type_options());
-        $this->assertSame('my-css-class', manager::get_task_type_css('custom'));
-        $this->assertSame('', manager::get_task_type_css('explore'));
-        $this->assertSame('custom', manager::default_task_type());
-    }
-
-    public function test_view_exposes_tasktype_css_classes(): void {
-        $data = $this->setup_course_task(['tasktype' => 'watch']);
-        $this->setUser($data['student1']);
-
-        $view = manager::get_task_view($data['context'], (int)$data['task']->id);
-
-        $this->assertSame('c4lv-mu-watch c4lv-mu-watch1', $view['taskdescriptioncssclasses']);
     }
 
     /**

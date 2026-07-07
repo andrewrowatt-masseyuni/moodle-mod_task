@@ -286,6 +286,7 @@
     font-size: 70%;
 }
 
+/*
 #page-mod-task-view .activity-header {
     padding: 0;
     background-color: transparent;
@@ -303,6 +304,7 @@
     margin-bottom: 1rem;
     background: #f8f9fa;
 }
+*/
 
 /* Notification settings panel (sits above the task description). */
 .mod-task-notification-settings {

@@ -17,13 +17,11 @@ filter.
 - **Teacher response**, optionally flagged as a model answer once revealed.
 - **Anonymous responses** — students can post under a hidden name; staff
   always see the real author.
-- **Threaded replies** and **emoji reactions** on any post, configured
-  site-wide.
+- **Threaded replies** and **emoji reactions** on any post, each of which can
+  be turned off per activity (and reactions site-wide).
 - **Notification preferences** per Task (all responses and replies, responses
   only, replies to my response only, or muted).
 - A "*x* new responses" badge on the course page activity card.
-- Configurable **Task types**, each mapping to a set of CSS classes used to
-  style the description panel (e.g. Explore, Watch, Read, Write).
 - Embeddable in any filtered content using `{task:Task name}`.
 
 ## Requirements
@@ -41,7 +39,7 @@ filter.
 
 1. Add a Task activity and enter the **Task description** (shown to everyone,
    including before a student responds) and, optionally, a **Teacher
-   response** and its **Task type**.
+   response**.
 2. Students open the activity and post their response, choosing whether to
    respond **anonymously**.
 3. Once a student has responded, they can see the teacher response, every
@@ -54,9 +52,9 @@ filter.
 
 Settings live at *Site administration → Plugins → Activity modules → Task*:
 
+- **Enable reactions** — master switch for emoji reactions across all Tasks
+  (each activity can also disable reactions and replies individually).
 - **Reaction emoji** — the `shortcode:emoji` pairs offered as reactions.
-- **Task types** — one `shortname|name|CSS classes` definition per line,
-  controlling the options in each activity's "Task type" dropdown.
 - **Show new-response badge** — toggles the "*x* new responses" badge on the
   course page activity card.
 

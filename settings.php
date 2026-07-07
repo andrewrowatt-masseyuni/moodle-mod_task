@@ -25,18 +25,18 @@
 defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
+    $settings->add(new admin_setting_configcheckbox(
+        'mod_task/enablereactions',
+        get_string('enablereactions', 'mod_task'),
+        get_string('enablereactions_desc', 'mod_task'),
+        1
+    ));
+
     $settings->add(new admin_setting_configtextarea(
         'mod_task/emojis',
         get_string('emojis', 'mod_task'),
         get_string('emojis_desc', 'mod_task'),
         \mod_task\manager::DEFAULT_EMOJIS
-    ));
-
-    $settings->add(new \mod_task\admin_setting_tasktypes(
-        'mod_task/tasktypes',
-        get_string('tasktypes', 'mod_task'),
-        get_string('tasktypes_desc', 'mod_task'),
-        \mod_task\manager::DEFAULT_TASKTYPES
     ));
 
     $settings->add(new admin_setting_configcheckbox(

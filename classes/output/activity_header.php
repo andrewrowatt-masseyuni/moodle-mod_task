@@ -49,13 +49,9 @@ class activity_header extends \core\output\activity_header {
             // $PAGE->cm is not reliably populated at the point the header is
             // exported).
             $cm = $this->page->cm;
-            $cssclasses = (!empty($cm) && $cm->modname === 'task')
-                ? \mod_task\manager::get_task_type_css(\mod_task\manager::get_task($cm->instance)->tasktype)
-                : '';
 
             $description = $output->render_from_template('mod_task/description', [
                 'taskdescription' => $data['description'],
-                'taskdescriptioncssclasses' => $cssclasses,
             ]);
 
             // Participants get the per-user notification settings panel directly
