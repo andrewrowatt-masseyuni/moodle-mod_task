@@ -104,9 +104,71 @@ class mod_task_mod_form extends moodleform_mod {
         $mform->setDefault('embedoncoursepage', 0);
         $mform->addHelpButton('embedoncoursepage', 'embedoncoursepage', 'mod_task');
 
+        $this->add_grading_elements();
+
         $this->standard_coursemodule_elements();
 
+        // Core's "Receive a grade" completion checkbox hides itself against the
+        // standard modgrade element, which this form does not use, so tie it to
+        // the "Graded task" toggle instead.
+        $suffix = $this->get_suffix();
+        if ($mform->elementExists('completionusegrade' . $suffix)) {
+            $mform->hideIf('completionusegrade' . $suffix, 'graded', 'eq', 0);
+        }
+
         $this->add_action_buttons();
+    }
+
+    /**
+     * Add the participation grading settings.
+     *
+     * The marks fields only show while "Graded task" is on, and the reply and
+     * reaction pairs additionally require their feature to be enabled. As with
+     * the react completion condition, the reaction pair is omitted entirely
+     * when reactions are turned off site-wide.
+     */
+    protected function add_grading_elements(): void {
+        $mform = $this->_form;
+
+        $mform->addElement('header', 'gradingheader', get_string('gradingheading', 'mod_task'));
+
+        $mform->addElement('selectyesno', 'graded', get_string('graded', 'mod_task'));
+        $mform->setDefault('graded', 0);
+        $mform->addHelpButton('graded', 'graded', 'mod_task');
+
+        $mform->addElement(
+            'text',
+            'graderesponsepoints',
+            get_string('graderesponsepoints', 'mod_task'),
+            ['size' => 4]
+        );
+        $mform->setType('graderesponsepoints', PARAM_INT);
+        $mform->setDefault('graderesponsepoints', 80);
+        $mform->addHelpButton('graderesponsepoints', 'graderesponsepoints', 'mod_task');
+        $mform->hideIf('graderesponsepoints', 'graded', 'eq', 0);
+
+        $fields = [
+            'gradereplypoints' => 10,
+            'gradereplycount' => 1,
+        ];
+        if (get_config('mod_task', 'enablereactions') !== '0') {
+            $fields += [
+                'gradereactpoints' => 10,
+                'gradereactcount' => 1,
+            ];
+        }
+        foreach ($fields as $field => $default) {
+            $mform->addElement('text', $field, get_string($field, 'mod_task'), ['size' => 4]);
+            $mform->setType($field, PARAM_INT);
+            $mform->setDefault($field, $default);
+            $mform->hideIf($field, 'graded', 'eq', 0);
+            $toggle = strpos($field, 'gradereply') === 0 ? 'enablereplies' : 'enablereactions';
+            $mform->hideIf($field, $toggle, 'eq', 0);
+        }
+        $mform->addHelpButton('gradereplypoints', 'gradereplypoints', 'mod_task');
+        if (isset($fields['gradereactpoints'])) {
+            $mform->addHelpButton('gradereactpoints', 'gradereactpoints', 'mod_task');
+        }
     }
 
     /**
@@ -192,8 +254,16 @@ class mod_task_mod_form extends moodleform_mod {
      */
     public function data_postprocessing($data) {
         parent::data_postprocessing($data);
+        $suffix = $this->get_suffix();
+        // A grade-based completion condition cannot survive without a grade item.
+        if (empty($data->graded)) {
+            foreach (['completionusegrade', 'completionpassgrade'] as $field) {
+                if (isset($data->{$field . $suffix})) {
+                    $data->{$field . $suffix} = 0;
+                }
+            }
+        }
         if (!empty($data->completionunlocked)) {
-            $suffix = $this->get_suffix();
             $autocompletion = !empty($data->{'completion' . $suffix})
                 && $data->{'completion' . $suffix} == COMPLETION_TRACKING_AUTOMATIC;
             // A completion condition cannot be required when its feature is off,
@@ -224,6 +294,32 @@ class mod_task_mod_form extends moodleform_mod {
         $description = $data['introeditor']['text'] ?? '';
         if (trim(html_to_text($description)) === '' && stripos($description, '<img') === false) {
             $errors['introeditor'] = get_string('required');
+        }
+
+        if (!empty($data['graded'])) {
+            $points = ['graderesponsepoints', 'gradereplypoints', 'gradereactpoints'];
+            foreach ($points as $field) {
+                if (isset($data[$field]) && $data[$field] < 0) {
+                    $errors[$field] = get_string('error_gradenegative', 'mod_task');
+                }
+            }
+            foreach (['gradereplycount', 'gradereactcount'] as $field) {
+                if (isset($data[$field]) && $data[$field] < 1) {
+                    $errors[$field] = get_string('error_gradecountmin', 'mod_task');
+                }
+            }
+            // The grade maximum must be positive: sum the contributions that
+            // would actually count with the submitted feature toggles.
+            $max = max(0, (int) ($data['graderesponsepoints'] ?? 0));
+            if (!empty($data['enablereplies'])) {
+                $max += max(0, (int) ($data['gradereplypoints'] ?? 0));
+            }
+            if (!empty($data['enablereactions']) && get_config('mod_task', 'enablereactions') !== '0') {
+                $max += max(0, (int) ($data['gradereactpoints'] ?? 0));
+            }
+            if ($max <= 0) {
+                $errors['graderesponsepoints'] = get_string('error_grademaxzero', 'mod_task');
+            }
         }
 
         return $errors;

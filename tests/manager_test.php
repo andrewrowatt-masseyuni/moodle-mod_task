@@ -952,6 +952,111 @@ final class manager_test extends \advanced_testcase {
         );
     }
 
+    public function test_get_participation_grades_counting_rules(): void {
+        global $DB;
+        $data = $this->setup_course_task([
+            'graded' => 1,
+            'graderesponsepoints' => 80,
+            'gradereplypoints' => 20,
+            'gradereplycount' => 2,
+            'gradereactpoints' => 10,
+            'gradereactcount' => 2,
+        ]);
+        $taskid = (int)$data['task']->id;
+        $student1 = (int)$data['student1']->id;
+        $student2 = (int)$data['student2']->id;
+
+        $peerpost = $data['taskgen']->create_response([
+            'taskid' => $taskid,
+            'userid' => $student2,
+            'content' => '<p>Peer response.</p>',
+        ]);
+        $ownpost = $data['taskgen']->create_response([
+            'taskid' => $taskid,
+            'userid' => $student1,
+            'content' => '<p>My response.</p>',
+        ]);
+
+        // Replies and reactions on the student's own post earn nothing.
+        $data['taskgen']->create_reply([
+            'taskid' => $taskid,
+            'userid' => $student1,
+            'parentid' => $ownpost->id,
+            'content' => '<p>Adding to myself.</p>',
+        ]);
+        $data['taskgen']->create_reaction(['postid' => $ownpost->id, 'userid' => $student1]);
+        $task = manager::get_task($taskid);
+        $grades = manager::get_participation_grades($task, $student1);
+        $this->assertEquals(80.0, $grades[$student1]->rawgrade);
+
+        // One of two required replies earns half the reply marks; two different
+        // emoji on the same peer post count as one post reacted to.
+        $data['taskgen']->create_reply([
+            'taskid' => $taskid,
+            'userid' => $student1,
+            'parentid' => $peerpost->id,
+            'content' => '<p>Reply to peer.</p>',
+        ]);
+        $data['taskgen']->create_reaction(['postid' => $peerpost->id, 'userid' => $student1, 'emoji' => 'thumbsup']);
+        $data['taskgen']->create_reaction(['postid' => $peerpost->id, 'userid' => $student1, 'emoji' => 'heart']);
+        $grades = manager::get_participation_grades($task, $student1);
+        $this->assertEquals(95.0, $grades[$student1]->rawgrade);
+
+        // A deleted reply no longer counts, but reactions on a deleted post still do.
+        $DB->set_field('task_post', 'deleted', 1, ['taskid' => $taskid, 'parentid' => $peerpost->id]);
+        $DB->set_field('task_post', 'deleted', 1, ['id' => $peerpost->id]);
+        $grades = manager::get_participation_grades($task, $student1);
+        $this->assertEquals(85.0, $grades[$student1]->rawgrade);
+
+        // All users at once: the deleted peer response earns nothing, and users
+        // with no counted participation are omitted entirely.
+        $grades = manager::get_participation_grades($task);
+        $this->assertArrayNotHasKey($student2, $grades);
+        $this->assertEquals(85.0, $grades[$student1]->rawgrade);
+    }
+
+    public function test_participation_flows_update_gradebook(): void {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+
+        $data = $this->setup_course_task(['graded' => 1, 'graderesponsepoints' => 80]);
+        $taskid = (int)$data['task']->id;
+        $student1 = (int)$data['student1']->id;
+
+        $this->setUser($data['student1']);
+        $post = manager::create_post($data['context'], $taskid, 0, '<p>My answer.</p>', false, $student1);
+
+        $grades = grade_get_grades((int)$data['course']->id, 'mod', 'task', $taskid, $student1);
+        $this->assertEquals(80.0, (float)$grades->items[0]->grades[$student1]->grade);
+
+        // Deleting the response takes the marks away again.
+        $this->setUser($data['teacher']);
+        manager::delete_post($data['context'], (int)$post->id, (int)$data['teacher']->id);
+
+        $grades = grade_get_grades((int)$data['course']->id, 'mod', 'task', $taskid, $student1);
+        $this->assertNull($grades->items[0]->grades[$student1]->grade);
+    }
+
+    public function test_update_user_grade_is_a_noop_for_ungraded_tasks(): void {
+        global $CFG;
+        require_once($CFG->libdir . '/gradelib.php');
+
+        $data = $this->setup_course_task(['graded' => 0]);
+        $taskid = (int)$data['task']->id;
+        $student1 = (int)$data['student1']->id;
+
+        $this->setUser($data['student1']);
+        manager::create_post($data['context'], $taskid, 0, '<p>My answer.</p>', false, $student1);
+
+        $item = \grade_item::fetch([
+            'courseid' => (int)$data['course']->id,
+            'itemtype' => 'mod',
+            'itemmodule' => 'task',
+            'iteminstance' => $taskid,
+        ]);
+        $this->assertFalse($item);
+    }
+
     /**
      * Run the notification adhoc task for a given post.
      *

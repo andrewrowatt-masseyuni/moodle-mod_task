@@ -78,6 +78,8 @@ class provider implements
             'timemodified' => 'privacy:metadata:task_notifypref:timemodified',
         ], 'privacy:metadata:task_notifypref');
 
+        $collection->link_subsystem('core_grades', 'privacy:metadata:core_grades');
+
         return $collection;
     }
 

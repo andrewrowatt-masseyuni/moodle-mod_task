@@ -83,8 +83,10 @@ class react_post extends external_api {
             $result['action']
         )->trigger();
 
-        // Adding or removing a reaction can change the "make a reaction" completion condition.
+        // Adding or removing a reaction can change the "make a reaction" completion
+        // condition and the user's participation marks.
         manager::update_completion_state($cm, (int)$USER->id, $result['action'] === 'added');
+        manager::update_user_grade((int)$post->taskid, (int)$USER->id);
 
         $reactions = manager::get_reactions([(int)$post->id], (int)$USER->id)[(int)$post->id];
         $counts = [];
