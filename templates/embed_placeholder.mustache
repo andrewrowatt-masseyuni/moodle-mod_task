@@ -26,22 +26,25 @@
     * data-cmid
     * data-contextid
     * data-showdescription ("1" to render the description, "0" to suppress it)
+    * data-showheading ("1" to render the Task name heading, "0" to suppress it)
 
     Context variables required for this template:
     * uid (string)
     * cmid (int)
     * contextid (int)
     * showdescription (int) 1 to render the description, 0 to suppress it
+    * showheading (int) 1 to render the Task name heading, 0 to suppress it
 
     Example context (json):
     {
         "uid": "mod_task_12_34",
         "cmid": 12,
         "contextid": 34,
-        "showdescription": 1
+        "showdescription": 1,
+        "showheading": 1
     }
 }}
-<div class="mod-task" data-region="mod_task" id="{{uid}}" data-cmid="{{cmid}}" data-contextid="{{contextid}}" data-showdescription="{{showdescription}}">
+<div class="mod-task" data-region="mod_task" id="{{uid}}" data-cmid="{{cmid}}" data-contextid="{{contextid}}" data-showdescription="{{showdescription}}" data-showheading="{{showheading}}">
   <div class="mod-task-skeleton" aria-hidden="true">
     <div class="mod-task-skeleton-block mod-task-skeleton-title"></div>
     <div class="mod-task-skeleton-block mod-task-skeleton-content"></div>

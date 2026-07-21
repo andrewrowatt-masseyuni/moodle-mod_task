@@ -38,6 +38,7 @@
     {
         "taskid": 7,
         "name": "Reflect on the reading",
+        "showheading": true,
         "showdescription": true,
         "taskdescription": "<p>What stood out to you?</p>",
         "canrespond": true,
@@ -66,6 +67,10 @@
 }}
 <div class="mod-task-activity" data-region="task-root" data-taskid="{{taskid}}">
 
+  {{#showheading}}
+    <h3 class="mod-task-name h4">{{name}}</h3>
+  {{/showheading}}
+
   {{#showdescription}}
     {{#shownotificationsettings}}
       {{#notificationsettings}}
@@ -79,7 +84,7 @@
     <div class="card mod-task-response-panel mod-task-teacher-response" data-region="teacher-response">
       <div class="card-body mod-task-response-panel-body" data-region="panel-body">
         <div class="mod-task-teacher-response-header d-flex justify-content-between">
-          <h2 class="h5 mod-task-teacher-response-title mb-0">{{#str}}teacherresponseheading, mod_task{{/str}}</h2>
+          <h4 class="h5 mod-task-teacher-response-title mb-0">{{#str}}teacherresponseheading, mod_task{{/str}}</h4>
           {{#teacherresponseismodelanswer}}
             <span class="badge badge-success mod-task-model-badge">{{#str}}modelanswer, mod_task{{/str}}</span>
           {{/teacherresponseismodelanswer}}
@@ -102,7 +107,7 @@
   {{#canrespond}}
     <section class="mod-task-your-response" data-region="your-response">
       {{#canaddresponse}}
-      <h2 class="h5 mod-task-section-heading">{{#str}}yourresponseheading, mod_task{{/str}}</h2>
+      <h4 class="h5 mod-task-section-heading">{{#str}}yourresponseheading, mod_task{{/str}}</h4>
         <div class="mod-task-composer" data-region="composer">
           <div class="mod-task-composer-row">
             <div class="mod-task-post-avatar" data-region="composer-avatar">
@@ -137,7 +142,7 @@
     <section class="mod-task-other-responses" data-region="other-responses">
       <div class="mod-task-responses-header">
         <div class="mod-task-responses-header-main">
-          <h2 class="h5 mod-task-section-heading mb-0">{{#showallresponsesheading}}{{#str}}allresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}{{^showallresponsesheading}}{{#str}}otherresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}</h2>
+          <h4 class="h5 mod-task-section-heading mb-0">{{#showallresponsesheading}}{{#str}}allresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}{{^showallresponsesheading}}{{#str}}otherresponsesheading, mod_task{{/str}}{{/showallresponsesheading}}</h4>
           <span class="mod-task-responses-count" data-region="post-count"></span>
         </div>
         <div class="mod-task-sort">

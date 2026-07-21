@@ -160,6 +160,9 @@ class TaskView {
         // The activity page suppresses the description (the theme renders the
         // activity intro itself); a {task:Name} filter embed shows it.
         this.showDescription = root.dataset.showdescription !== '0';
+        // Likewise the activity page suppresses the Task name heading (Moodle
+        // already renders the activity name); embeds show it.
+        this.showHeading = root.dataset.showheading !== '0';
         this.data = null;
         this.emojis = {};
         this.sortMode = 'newest';
@@ -204,6 +207,7 @@ class TaskView {
     async applyData(data) {
         this.data = data;
         data.showdescription = this.showDescription;
+        data.showheading = this.showHeading;
         this.emojis = {};
         (data.emojis || []).forEach(e => {
             this.emojis[e.shortcode] = e.unicode;

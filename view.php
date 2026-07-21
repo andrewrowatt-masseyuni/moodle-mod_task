@@ -55,9 +55,10 @@ $PAGE->set_activity_record($task);
 
 echo $OUTPUT->header();
 
-// On the activity page the theme already renders the activity intro (the Task
-// description), so the live Task shell must not render it again. A {task:Name}
-// filter embed has no such theme-rendered intro, so there it stays visible.
-echo \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id, false);
+// On the activity page the theme already renders the activity name and intro
+// (the Task description), so the live Task shell must not render them again.
+// A {task:Name} filter embed has no such theme-rendered header, so there the
+// name heading and description stay visible.
+echo \mod_task\output\embed::placeholder($OUTPUT, $cm->id, $context->id, false, false);
 
 echo $OUTPUT->footer();

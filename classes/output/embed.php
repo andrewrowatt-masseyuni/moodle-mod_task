@@ -48,13 +48,17 @@ class embed {
      * @param bool $showdescription whether the Task shell should render the
      *        description (intro). False on the activity page, where the theme
      *        already renders the activity intro; true for {task:Name} embeds.
+     * @param bool $showheading whether the Task shell should render the Task
+     *        name as a heading. False on the activity page, where Moodle
+     *        already renders the activity name; true for embeds.
      * @return string the placeholder HTML
      */
     public static function placeholder(
         \renderer_base $output,
         int $cmid,
         int $contextid,
-        bool $showdescription = true
+        bool $showdescription = true,
+        bool $showheading = true
     ): string {
         global $PAGE;
 
@@ -69,6 +73,7 @@ class embed {
             'cmid' => $cmid,
             'contextid' => $contextid,
             'showdescription' => $showdescription ? 1 : 0,
+            'showheading' => $showheading ? 1 : 0,
         ]);
     }
 }
